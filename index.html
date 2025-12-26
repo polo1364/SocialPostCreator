@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI 驅動的社群媒體貼文產生器，使用 Gemini AI 為您的照片生成專業貼文">
+    <title>AI 社群貼文產生器 | Social Post Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .animate-fade-up {
+            animation: fadeUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .result-card {
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .toast {
+            animation: toastSlideIn 0.3s ease-out;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4">
+    
+    <!-- API Key 模態視窗 -->
+    <div id="key-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden">
+        <div class="modal-content glass-effect rounded-3xl w-full max-w-md mx-4 p-8 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg mx-auto mb-4">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">設定 API Key</h2>
+                <p class="text-sm text-gray-600">請輸入您的 Google Gemini API Key</p>
+                <p class="text-xs text-gray-500 mt-2">
+                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-indigo-600 hover:underline">
+                        還沒有 API Key？點此取得
+                    </a>
+                </p>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-lock mr-2"></i>API Key
+                </label>
+                <input 
+                    type="password" 
+                    id="api-key-input" 
+                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition text-gray-800 font-mono text-sm"
+                    placeholder="輸入您的 Gemini API Key..."
+                    autocomplete="off"
+                >
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-shield-alt mr-1"></i>您的 API Key 僅儲存在本地瀏覽器，不會上傳到伺服器
+                </p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button 
+                    onclick="saveKey()" 
+                    class="flex-1 btn-primary text-white py-3 rounded-xl font-semibold shadow-lg"
+                >
+                    <i class="fas fa-check mr-2"></i>儲存
+                </button>
+                <button 
+                    onclick="closeKeyModal()" 
+                    class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition"
+                >
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- 標題區 -->
+        <header class="text-center mb-8 animate-fade-up">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl mb-6 rotate-3 hover:rotate-6 transition-transform">
+                <i class="fab fa-facebook text-4xl text-indigo-600"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
+                AI 社群貼文產生器
+            </h1>
+            <p class="text-white/90 text-lg md:text-xl">
+                讓 AI 為您的照片創作專業的社群媒體貼文
+            </p>
+            <div class="mt-4 flex items-center justify-center gap-2 text-white/80 text-sm">
+                <i class="fas fa-robot"></i>
+                <span>Powered by Gemini 2.5 Flash</span>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <div class="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl mb-6 animate-fade-up" style="animation-delay: 0.1s">
+            
+            <!-- 圖片上傳區 -->
+            <label for="file-upload" class="cursor-pointer block mb-6">
+                <div id="upload-box" class="upload-area border-3 border-dashed border-indigo-300 rounded-2xl p-8 text-center relative overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 min-h-[300px] flex flex-col justify-center items-center">
+                    <img id="preview-img" class="hidden max-h-full max-w-full object-contain rounded-xl shadow-lg">
+                    <div id="upload-placeholder" class="text-indigo-500">
+                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-lg">
+                            <i class="fas fa-cloud-upload-alt text-4xl"></i>
+                        </div>
+                        <p class="text-lg font-semibold mb-2">點擊或拖放上傳照片</p>
+                        <p class="text-sm text-gray-500">支援 JPG、PNG、GIF、WebP（最大 10MB）</p>
+                    </div>
+                </div>
+            </label>
+            <input id="file-upload" type="file" class="hidden" accept="image/*" onchange="previewImage(event)">
+            
+            <!-- 描述輸入區 -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-comment-dots mr-2 text-indigo-600"></i>
+                    這張照片想表達什麼？（簡短描述）
+                </label>
+                <textarea 
+                    id="user-desc" 
+                    rows="4" 
+                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none resize-none bg-white text-gray-800 placeholder-gray-400 transition"
+                    placeholder="例如：今天跟好久不見的朋友去吃早午餐，超開心！或是：週末去爬山，看到超美的風景..."
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-lightbulb mr-1"></i>描述越詳細，生成的貼文越貼近您的想法
+                </p>
+            </div>
+
+            <!-- 生成按鈕 -->
+            <button 
+                id="generate-btn" 
+                onclick="generateCaption()" 
+                class="w-full btn-primary text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3"
+                disabled
+            >
+                <i class="fas fa-magic"></i>
+                <span>✨ 生成貼文</span>
+            </button>
+
+            <!-- API Key 管理按鈕 -->
+            <div class="mt-4 text-center">
+                <button 
+                    onclick="showKeyModal()" 
+                    class="text-sm text-gray-600 hover:text-indigo-600 transition flex items-center gap-2 mx-auto"
+                >
+                    <i class="fas fa-cog"></i>
+                    <span>管理 API Key</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 載入中 -->
+        <div id="loading" class="hidden glass-effect rounded-3xl p-8 text-center shadow-xl animate-fade-up">
+            <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
+                <i class="fas fa-robot text-3xl text-white"></i>
+            </div>
+            <p class="text-lg font-semibold text-gray-700 mb-2">AI 正在為您創作貼文</p>
+            <p class="text-sm text-gray-500 loading-dots">請稍候</p>
+        </div>
+
+        <!-- 結果區 -->
+        <div id="result-area" class="hidden animate-fade-up" style="animation-delay: 0.2s">
+            <div class="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
+                        <i class="fas fa-sparkles"></i>
+                    </div>
+                    為您生成的貼文選項
+                </h3>
+                <div id="captions-container" class="space-y-4"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="fixed top-4 right-4 glass-effect rounded-xl px-6 py-4 shadow-2xl hidden toast z-50">
+        <div class="flex items-center gap-3">
+            <i id="toast-icon" class="fas fa-check-circle text-green-500 text-xl"></i>
+            <span id="toast-message" class="text-gray-800 font-semibold"></span>
+        </div>
+    </div>
+
+    <script>
+        let apiKey = localStorage.getItem('gemini_api_key');
+        let selectedFile = null;
+
+        // 初始化：檢查 API Key
+        if (!apiKey) {
+            setTimeout(() => showKeyModal(), 300);
+        }
+
+        // 顯示 API Key 模態
+        function showKeyModal() {
+            const modal = document.getElementById('key-modal');
+            const input = document.getElementById('api-key-input');
+            modal.classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+            
+            // 如果有已儲存的 key，顯示在輸入框（但用星號遮住）
+            if (apiKey) {
+                input.value = apiKey.substring(0, 8) + '...';
+                input.type = 'text';
+            }
+        }
+
+        // 關閉 API Key 模態
+        function closeKeyModal() {
+            document.getElementById('key-modal').classList.add('hidden');
+            document.getElementById('api-key-input').value = '';
+            document.getElementById('api-key-input').type = 'password';
+        }
+
+        // 儲存 API Key
+        function saveKey() {
+            const val = document.getElementById('api-key-input').value.trim();
+            if (!val) {
+                showToast('請輸入 API Key', 'error');
+                return;
+            }
+            
+            // 如果輸入的是已儲存的 key（顯示為 xxx...），不更新
+            if (val.includes('...') && apiKey) {
+                closeKeyModal();
+                return;
+            }
+            
+            apiKey = val;
+            localStorage.setItem('gemini_api_key', apiKey);
+            closeKeyModal();
+            showToast('API Key 已儲存', 'success');
+        }
+
+        // 圖片預覽
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 檢查檔案大小（10MB）
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('圖片檔案過大，請選擇小於 10MB 的圖片', 'error');
+                return;
+            }
+            
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('preview-img');
+                const placeholder = document.getElementById('upload-placeholder');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                checkBtnState();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 拖放功能
+        const uploadBox = document.getElementById('upload-box');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, () => uploadBox.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('dragover'), false);
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                document.getElementById('file-upload').files = files;
+                previewImage({ target: { files: files } });
+            }
+        });
+
+        // 檢查按鈕狀態
+        document.getElementById('user-desc').addEventListener('input', checkBtnState);
+
+        function checkBtnState() {
+            const desc = document.getElementById('user-desc').value.trim();
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = !(selectedFile && desc && apiKey);
+        }
+
+        // 生成貼文
+        async function generateCaption() {
+            if (!selectedFile || !apiKey) return;
+            const desc = document.getElementById('user-desc').value.trim();
+
+            // UI 狀態更新
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('generate-btn').disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('description', desc);
+
+            try {
+                const res = await fetch('/api/caption', {
+                    method: 'POST',
+                    headers: { 'x-api-key': apiKey },
+                    body: formData
+                });
+
+                const data = await res.json();
+                
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || '生成失敗');
+                }
+
+                if (!data.captions || data.captions.length === 0) {
+                    throw new Error('未收到有效的貼文內容');
+                }
+
+                renderResult(data.captions);
+                showToast(`成功生成 ${data.captions.length} 則貼文！`, 'success');
+
+            } catch (e) {
+                console.error(e);
+                showToast(e.message || '生成失敗，請檢查 API Key 或稍後再試', 'error');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+                checkBtnState();
+            }
+        }
+
+        // 渲染結果
+        function renderResult(captions) {
+            document.getElementById('result-area').classList.remove('hidden');
+            const container = document.getElementById('captions-container');
+            
+            container.innerHTML = captions.map((caption, index) => `
+                <div class="result-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                            ${index + 1}
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(caption)}</p>
+                            <button 
+                                onclick="copyText(this, ${JSON.stringify(caption)})" 
+                                class="copy-btn inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-semibold text-sm transition"
+                                title="複製貼文"
+                            >
+                                <i class="far fa-copy"></i>
+                                <span>複製</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 複製文字
+        function copyText(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const span = btn.querySelector('span');
+                icon.className = "fas fa-check";
+                span.textContent = '已複製';
+                btn.classList.add('bg-green-50', 'text-green-600');
+                btn.classList.remove('bg-indigo-50', 'text-indigo-600');
+                
+                setTimeout(() => {
+                    icon.className = "far fa-copy";
+                    span.textContent = '複製';
+                    btn.classList.remove('bg-green-50', 'text-green-600');
+                    btn.classList.add('bg-indigo-50', 'text-indigo-600');
+                }, 2000);
+                
+                showToast('已複製到剪貼簿', 'success');
+            }).catch(() => {
+                showToast('複製失敗', 'error');
+            });
+        }
+
+        // 顯示 Toast 通知
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            
+            messageEl.textContent = message;
+            
+            if (type === 'error') {
+                icon.className = 'fas fa-exclamation-circle text-red-500 text-xl';
+            } else {
+                icon.className = 'fas fa-check-circle text-green-500 text-xl';
+            }
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // HTML 轉義
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初始化按鈕狀態
+        checkBtnState();
+    </script>
+</body>
+</html>
