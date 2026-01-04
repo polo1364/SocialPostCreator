@@ -445,6 +445,40 @@
                 ></textarea>
             </div>
 
+            <!-- 星級評分區 -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-star mr-2 text-pink-600"></i>
+                    整體評價星級（選填，影響貼文語調）
+                </label>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div id="star-rating" class="flex gap-1 items-center">
+                        <button type="button" onclick="setRating(1)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="1">
+                            <i class="far fa-star text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="setRating(2)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="2">
+                            <i class="far fa-star text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="setRating(3)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="3">
+                            <i class="far fa-star text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="setRating(4)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="4">
+                            <i class="far fa-star text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="setRating(5)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="5">
+                            <i class="far fa-star text-gray-300"></i>
+                        </button>
+                        <button type="button" id="clear-rating-btn" onclick="clearRating()" class="ml-2 text-xs text-gray-400 hover:text-red-500 transition hidden">
+                            <i class="fas fa-times"></i> 清除
+                        </button>
+                    </div>
+                    <span id="rating-text" class="text-sm text-gray-500">可選，不影響生成</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-400">
+                    <i class="fas fa-info-circle mr-1"></i>點擊星星評分，再點一次可取消。1星=失望、3星=普通、5星=超推
+                </p>
+            </div>
+
             <!-- 風格選擇區 -->
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-700 mb-3">
@@ -529,6 +563,17 @@
         let currentPlaceInfo = null;
         let currentPlaceType = 'store'; // 'store' 或 'attraction'
         let selectedStyles = ['humorous', 'warm', 'foodie'];
+        let currentRating = 0; // 0 表示未選擇
+        
+        // 星級對應的文字描述
+        const RATING_TEXTS = {
+            0: '可選，不影響生成',
+            1: '😞 失望，不推薦',
+            2: '😕 普通偏下，有待加強',
+            3: '😐 還可以，中規中矩',
+            4: '😊 不錯，值得一試',
+            5: '🤩 超讚，大力推薦！'
+        };
         
         // 風格定義
         const STYLES = {
@@ -548,7 +593,49 @@
                 setTimeout(() => showKeyModal(), 300);
             }
             renderStyleChips();
+            updateRatingDisplay(); // 初始化顯示
         });
+        
+        // 設定星級評分（點擊同一個星星可取消選擇）
+        function setRating(rating) {
+            // 如果點擊已選的星級，則取消選擇
+            if (currentRating === rating) {
+                currentRating = 0;
+            } else {
+                currentRating = rating;
+            }
+            updateRatingDisplay();
+        }
+        
+        // 更新星級顯示
+        function updateRatingDisplay() {
+            const buttons = document.querySelectorAll('.star-btn');
+            const clearBtn = document.getElementById('clear-rating-btn');
+            
+            buttons.forEach((btn, index) => {
+                const starIcon = btn.querySelector('i');
+                if (index < currentRating) {
+                    starIcon.className = 'fas fa-star text-yellow-400';
+                } else {
+                    starIcon.className = 'far fa-star text-gray-300';
+                }
+            });
+            
+            document.getElementById('rating-text').textContent = RATING_TEXTS[currentRating];
+            
+            // 顯示或隱藏清除按鈕
+            if (currentRating > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
+        
+        // 清除星級評分
+        function clearRating() {
+            currentRating = 0;
+            updateRatingDisplay();
+        }
 
         // 渲染風格選擇器
         function renderStyleChips() {
@@ -833,6 +920,7 @@
             formData.append('image', selectedFile);
             formData.append('description', desc);
             formData.append('styles', JSON.stringify(selectedStyles));
+            formData.append('rating', currentRating);
             if (currentPlaceInfo) {
                 formData.append('placeInfo', JSON.stringify(currentPlaceInfo));
             }

@@ -85,12 +85,14 @@ app.post('/api/search-place', async (req, res) => {
             return res.status(400).json({ error: "請輸入名稱" });
         }
 
-        // 初始化 Gemini AI
+        // 初始化 Gemini AI - 啟用 Google Search grounding 功能
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ 
             model: MODEL_NAME,
+            tools: [{
+                googleSearch: {}
+            }],
             generationConfig: { 
-                responseMimeType: "application/json",
                 temperature: 0.3,
                 topP: 0.8
             }
@@ -102,91 +104,112 @@ app.post('/api/search-place', async (req, res) => {
         let searchPrompt;
         
         if (isAttraction) {
-            // 景點搜尋 prompt
-            searchPrompt = `請幫我搜尋「${searchQuery}」這個景點/旅遊地點的相關資訊。
+            // 景點搜尋 prompt - 使用網路搜尋
+            searchPrompt = `請使用網路搜尋功能，查詢「${searchQuery}」這個景點/旅遊地點的最新資訊。
 
-請提供以下資訊（如果找不到某項資訊請填 null）：
-1. 景點全名
-2. 景點類型（例如：自然景觀、歷史古蹟、主題樂園、博物館、海灘、山景、夜市、老街等）
-3. 主要特色或必看亮點（例如：日出、夜景、櫻花、古蹟、美食等）
-4. 地址或所在區域
-5. 開放時間（如有）
-6. 門票資訊（如有）
-7. 網路上的評價關鍵詞（例如：風景優美、人潮多、適合拍照、親子友善等）
-8. 最佳遊玩季節或時間
-9. 周邊推薦（如有）
+請搜尋並提供：
+1. 景點的正式名稱和類型
+2. 地點位置
+3. 網友評價和推薦原因
+4. 特色亮點和必看重點
+5. 最佳遊玩時間或季節
+6. 門票或開放時間資訊（如有）
+7. 周邊推薦景點
 
-請以 JSON 格式回傳，格式如下：
+搜尋完成後，請整理成以下 JSON 格式回傳（請確保是有效的 JSON）：
 {
   "found": true,
   "category": "attraction",
-  "name": "景點全名",
+  "name": "景點名稱",
   "type": "景點類型",
-  "signature": "主要特色或必看亮點",
-  "location": "地址或所在區域",
-  "hours": "開放時間或 null",
-  "ticketInfo": "門票資訊或 null",
-  "reviews": ["評價關鍵詞1", "評價關鍵詞2"],
-  "bestTime": "最佳遊玩時間或季節",
+  "signature": "主要特色",
+  "location": "位置",
+  "hours": "開放時間或null",
+  "ticketInfo": "門票資訊或null",
+  "reviews": ["網友評價1", "網友評價2", "網友評價3"],
+  "bestTime": "最佳時間",
   "highlights": ["亮點1", "亮點2"],
-  "nearby": ["周邊推薦1", "周邊推薦2"],
-  "summary": "一句話簡介這個景點"
+  "nearby": ["周邊景點1", "周邊景點2"],
+  "summary": "一句話介紹"
 }
 
-如果完全找不到這個景點的資訊，請回傳：
-{
-  "found": false,
-  "category": "attraction",
-  "name": "${placeName}",
-  "message": "找不到此景點的詳細資訊，建議手動補充描述"
-}`;
+如果搜尋不到相關資訊，回傳：
+{"found": false, "category": "attraction", "name": "${placeName}", "message": "找不到相關資訊"}`;
         } else {
-            // 店家搜尋 prompt
-            searchPrompt = `請幫我搜尋「${searchQuery}」這間店家/餐廳的相關資訊。
+            // 店家搜尋 prompt - 使用網路搜尋
+            searchPrompt = `請使用網路搜尋功能，查詢「${searchQuery}」這間店家/餐廳的最新資訊和網友評價。
 
-請提供以下資訊（如果找不到某項資訊請填 null）：
-1. 店家全名
-2. 店家類型（例如：咖啡廳、餐廳、甜點店、早午餐等）
-3. 主要特色或招牌（例如：招牌餐點、特色服務）
-4. 地址或地區
-5. 營業時間（如有）
-6. 價位範圍（如有）
-7. 網路上的評價關鍵詞（例如：氣氛好、餐點精緻、服務親切等）
-8. 任何值得一提的亮點
+請搜尋並提供：
+1. 店家的正式名稱和類型（咖啡廳/餐廳/甜點店等）
+2. 地址或位置
+3. 網友真實評價和推薦原因
+4. 招牌餐點或特色商品
+5. 價位範圍
+6. 營業時間（如有）
+7. 值得一提的亮點
 
-請以 JSON 格式回傳，格式如下：
+搜尋完成後，請整理成以下 JSON 格式回傳（請確保是有效的 JSON）：
 {
   "found": true,
   "category": "store",
-  "name": "店家全名",
+  "name": "店家名稱",
   "type": "店家類型",
-  "signature": "招牌特色",
-  "location": "地址或地區",
-  "hours": "營業時間或 null",
-  "priceRange": "價位範圍或 null",
-  "reviews": ["評價關鍵詞1", "評價關鍵詞2"],
+  "signature": "招牌餐點或特色",
+  "location": "地址或位置",
+  "hours": "營業時間或null",
+  "priceRange": "價位範圍或null",
+  "reviews": ["網友評價1", "網友評價2", "網友評價3"],
   "highlights": ["亮點1", "亮點2"],
-  "summary": "一句話簡介這間店"
+  "summary": "一句話介紹"
 }
 
-如果完全找不到這間店的資訊，請回傳：
-{
-  "found": false,
-  "category": "store",
-  "name": "${placeName}",
-  "message": "找不到此店家的詳細資訊，建議手動補充描述"
-}`;
+如果搜尋不到相關資訊，回傳：
+{"found": false, "category": "store", "name": "${placeName}", "message": "找不到相關資訊"}`;
         }
 
         const typeLabel = isAttraction ? '景點' : '店家';
-        console.log(`[${new Date().toISOString()}] 正在搜尋${typeLabel}「${searchQuery}」...`);
+        console.log(`[${new Date().toISOString()}] 正在使用 Google Search 搜尋${typeLabel}「${searchQuery}」...`);
 
         const result = await model.generateContent(searchPrompt);
         const response = await result.response;
-        const responseText = response.text();
+        
+        // 處理可能包含多個 parts 的回應（Google Search grounding）
+        let responseText = '';
+        if (response.candidates && response.candidates[0]) {
+            const parts = response.candidates[0].content.parts;
+            for (const part of parts) {
+                if (part.text) {
+                    responseText += part.text;
+                }
+            }
+        }
+        
+        if (!responseText) {
+            responseText = response.text();
+        }
+        
+        console.log(`[${new Date().toISOString()}] 搜尋回應:`, responseText.substring(0, 200) + '...');
         
         const cleanedJson = cleanJson(responseText);
-        const placeInfo = JSON.parse(cleanedJson);
+        let placeInfo;
+        
+        try {
+            placeInfo = JSON.parse(cleanedJson);
+        } catch (parseError) {
+            console.error('JSON 解析錯誤:', parseError);
+            // 如果解析失敗，嘗試從文字中提取資訊
+            placeInfo = {
+                found: true,
+                category: isAttraction ? 'attraction' : 'store',
+                name: placeName,
+                type: isAttraction ? '景點' : '店家',
+                signature: '特色待補充',
+                location: location || '位置待確認',
+                reviews: ['網友推薦'],
+                highlights: [],
+                summary: responseText.substring(0, 100)
+            };
+        }
 
         console.log(`[${new Date().toISOString()}] ${typeLabel}搜尋完成:`, placeInfo.found ? '找到' : '未找到');
         res.json({ placeInfo });
@@ -266,11 +289,41 @@ app.post('/api/caption', upload.single('image'), async (req, res) => {
         const userDescription = (req.body.description || "這張照片").trim();
         const placeInfo = req.body.placeInfo ? JSON.parse(req.body.placeInfo) : null;
         const selectedStyles = req.body.styles ? JSON.parse(req.body.styles) : ['humorous', 'warm', 'foodie'];
+        const rating = parseInt(req.body.rating) || 0; // 0 表示未選擇
         
         // 確保至少有3種風格
         const stylesToUse = selectedStyles.length >= 3 
             ? selectedStyles.slice(0, 5)  // 最多5種
             : ['humorous', 'warm', 'foodie'];
+        
+        // 星級對應的語調設定
+        const RATING_TONES = {
+            1: {
+                mood: "失望、不滿意",
+                direction: "表達失望的情緒，委婉但誠實地指出不足之處，提醒其他人注意",
+                keywords: "可惜、失望、不推薦、踩雷、下次不會再來"
+            },
+            2: {
+                mood: "普通偏下、有待加強",
+                direction: "表達中性偏負面的感受，客觀指出優缺點，但整體不太滿意",
+                keywords: "普通、還好、有待加強、期望落差"
+            },
+            3: {
+                mood: "中規中矩、還可以",
+                direction: "表達中性的感受，優缺點並陳，不特別推薦也不特別不推",
+                keywords: "還行、中規中矩、普通、可以接受"
+            },
+            4: {
+                mood: "不錯、滿意",
+                direction: "表達正面的感受，推薦給朋友，但也可以提及小小的改進空間",
+                keywords: "不錯、推薦、值得一試、會再來"
+            },
+            5: {
+                mood: "超棒、非常推薦",
+                direction: "表達非常滿意和興奮的情緒，大力推薦，用熱情的語調",
+                keywords: "超讚、必訪、大推、太棒了、絕對要來"
+            }
+        };
 
         // 初始化 Gemini AI - 使用較高的溫度增加多樣性
         const genAI = new GoogleGenerativeAI(apiKey);
@@ -336,6 +389,18 @@ ${placeInfo.summary ? `- 簡介：${placeInfo.summary}` : ''}
             return `${index + 1}. 【${style.name}風格】${style.description}，可使用 ${style.emoji} 等相關表情`;
         }).join('\n');
 
+        // 建構星級語調要求
+        let ratingContext = "";
+        if (rating > 0 && RATING_TONES[rating]) {
+            const tone = RATING_TONES[rating];
+            ratingContext = `
+【用戶評價：${rating} 星 ⭐】
+- 整體感受：${tone.mood}
+- 貼文方向：${tone.direction}
+- 建議使用的詞彙：${tone.keywords}
+⚠️ 重要：所有貼文都必須反映這個 ${rating} 星的評價語調！`;
+        }
+
         // 生成隨機種子增加多樣性
         const randomSeed = Math.floor(Math.random() * 10000);
         const timeOfDay = new Date().getHours();
@@ -347,6 +412,7 @@ ${placeInfo.summary ? `- 簡介：${placeInfo.summary}` : ''}
 
 【創意種子：${randomSeed}】- 請基於這個數字發揮獨特創意，讓每次生成都不一樣！
 【今日靈感詞：${randomAdj}】- 可以融入這個詞彙增加新鮮感
+${ratingContext}
 
 任務：觀察這張圖片，並結合用戶提供的背景描述「${userDescription}」，創作 ${stylesToUse.length} 則完全不同風格的貼文。
 ${placeContext}
