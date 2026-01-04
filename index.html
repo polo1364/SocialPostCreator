@@ -9,14 +9,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
         }
 
@@ -26,11 +26,21 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
 
+        .dark-glass {
+            background: rgba(26, 26, 46, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 50%, #ffd93d 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+
+        .accent-gradient {
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
         }
 
         .animate-fade-up {
@@ -52,35 +62,48 @@
 
         .upload-area {
             transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 107, 107, 0.1) 100%);
+            border: 2px dashed rgba(233, 69, 96, 0.4);
         }
 
         .upload-area:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 12px 24px rgba(233, 69, 96, 0.2);
+            border-color: #e94560;
         }
 
         .upload-area.dragover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
             transform: scale(1.02);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
             transition: all 0.3s ease;
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(233, 69, 96, 0.4);
         }
 
         .btn-primary:active:not(:disabled) {
             transform: translateY(0);
         }
 
+        .btn-secondary {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15, 52, 96, 0.4);
+        }
+
         .modal-backdrop {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(4px);
         }
 
@@ -101,11 +124,12 @@
 
         .result-card {
             transition: all 0.3s ease;
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
         }
 
         .result-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
         }
 
         .loading-dots::after {
@@ -124,7 +148,7 @@
         }
 
         .copy-btn:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .toast {
@@ -134,12 +158,90 @@
         @keyframes toastSlideIn {
             from {
                 opacity: 0;
-                transform: translateY(-20px);
+                transform: translateX(100%);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateX(0);
             }
+        }
+
+        /* 風格選擇器 */
+        .style-chip {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .style-chip:hover {
+            transform: translateY(-2px);
+        }
+
+        .style-chip.selected {
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+        }
+
+        .style-chip.selected .style-emoji {
+            transform: scale(1.2);
+        }
+
+        /* 店家資訊卡片 */
+        .store-info-card {
+            background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 217, 61, 0.1) 100%);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+        }
+
+        /* 搜尋按鈕動畫 */
+        .search-btn {
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover:not(:disabled) {
+            background: #e94560;
+        }
+
+        .search-btn.loading {
+            animation: searchPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes searchPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 標籤樣式 */
+        .info-tag {
+            background: rgba(233, 69, 96, 0.1);
+            color: #e94560;
+        }
+
+        /* 滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(233, 69, 96, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(233, 69, 96, 0.7);
+        }
+
+        /* 風格標籤顏色 */
+        .style-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 9999px;
         }
     </style>
 </head>
@@ -149,13 +251,13 @@
     <div id="key-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden">
         <div class="modal-content glass-effect rounded-3xl w-full max-w-md mx-4 p-8 shadow-2xl">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg mx-auto mb-4">
+                <div class="w-16 h-16 accent-gradient rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg mx-auto mb-4">
                     <i class="fas fa-key"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">設定 API Key</h2>
                 <p class="text-sm text-gray-600">請輸入您的 Google Gemini API Key</p>
                 <p class="text-xs text-gray-500 mt-2">
-                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-indigo-600 hover:underline">
+                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-pink-600 hover:underline">
                         還沒有 API Key？點此取得
                     </a>
                 </p>
@@ -168,7 +270,7 @@
                 <input 
                     type="password" 
                     id="api-key-input" 
-                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition text-gray-800 font-mono text-sm"
+                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition text-gray-800 font-mono text-sm"
                     placeholder="輸入您的 Gemini API Key..."
                     autocomplete="off"
                 >
@@ -199,18 +301,19 @@
         
         <!-- 標題區 -->
         <header class="text-center mb-8 animate-fade-up">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl mb-6 rotate-3 hover:rotate-6 transition-transform">
-                <i class="fab fa-facebook text-4xl text-indigo-600"></i>
+            <div class="inline-flex items-center justify-center w-20 h-20 accent-gradient rounded-3xl shadow-xl mb-6 rotate-3 hover:rotate-6 transition-transform">
+                <i class="fas fa-magic text-4xl text-white"></i>
             </div>
             <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
                 AI 社群貼文產生器
             </h1>
-            <p class="text-white/90 text-lg md:text-xl">
-                讓 AI 為您的照片創作專業的社群媒體貼文
+            <p class="text-white/80 text-lg md:text-xl">
+                智慧搜尋店家資訊，生成多樣化真實貼文
             </p>
-            <div class="mt-4 flex items-center justify-center gap-2 text-white/80 text-sm">
-                <i class="fas fa-robot"></i>
-                <span>Powered by Gemini 2.5 Flash</span>
+            <div class="mt-4 flex items-center justify-center gap-4 text-white/70 text-sm flex-wrap">
+                <span><i class="fas fa-robot mr-1"></i>Gemini 2.5 Flash</span>
+                <span><i class="fas fa-search mr-1"></i>智慧店家搜尋</span>
+                <span><i class="fas fa-palette mr-1"></i>多風格選擇</span>
             </div>
         </header>
 
@@ -219,11 +322,11 @@
             
             <!-- 圖片上傳區 -->
             <label for="file-upload" class="cursor-pointer block mb-6">
-                <div id="upload-box" class="upload-area border-3 border-dashed border-indigo-300 rounded-2xl p-8 text-center relative overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 min-h-[300px] flex flex-col justify-center items-center">
+                <div id="upload-box" class="upload-area rounded-2xl p-8 text-center relative overflow-hidden min-h-[280px] flex flex-col justify-center items-center">
                     <img id="preview-img" class="hidden max-h-full max-w-full object-contain rounded-xl shadow-lg">
-                    <div id="upload-placeholder" class="text-indigo-500">
-                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-lg">
-                            <i class="fas fa-cloud-upload-alt text-4xl"></i>
+                    <div id="upload-placeholder" class="text-gray-600">
+                        <div class="w-20 h-20 accent-gradient rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-lg">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-white"></i>
                         </div>
                         <p class="text-lg font-semibold mb-2">點擊或拖放上傳照片</p>
                         <p class="text-sm text-gray-500">支援 JPG、PNG、GIF、WebP（最大 10MB）</p>
@@ -232,20 +335,108 @@
             </label>
             <input id="file-upload" type="file" class="hidden" accept="image/*" onchange="previewImage(event)">
             
+            <!-- 店家/景點搜尋區 -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-search-location mr-2 text-pink-600"></i>
+                    店家或景點名稱（選填，自動搜尋網路資訊）
+                </label>
+                
+                <!-- 類型切換 -->
+                <div class="flex gap-2 mb-3">
+                    <button 
+                        id="type-store-btn"
+                        onclick="setPlaceType('store')"
+                        class="place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white"
+                    >
+                        <i class="fas fa-store"></i>
+                        <span>店家/餐廳</span>
+                    </button>
+                    <button 
+                        id="type-attraction-btn"
+                        onclick="setPlaceType('attraction')"
+                        class="place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    >
+                        <i class="fas fa-mountain"></i>
+                        <span>景點/旅遊</span>
+                    </button>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        id="place-name" 
+                        class="flex-1 border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition"
+                        placeholder="例如：藍瓶咖啡、鼎泰豐、九份老街、日月潭..."
+                    >
+                    <input 
+                        type="text" 
+                        id="place-location" 
+                        class="w-32 border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition"
+                        placeholder="地區"
+                    >
+                    <button 
+                        id="search-place-btn"
+                        onclick="searchPlace()" 
+                        class="search-btn px-6 py-4 bg-gray-800 text-white rounded-xl font-semibold hover:bg-pink-600 transition flex items-center gap-2"
+                    >
+                        <i class="fas fa-search"></i>
+                        <span class="hidden md:inline">搜尋</span>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>輸入店家或景點名稱後點擊搜尋，AI 會自動查詢相關資訊讓貼文更真實
+                </p>
+            </div>
+
+            <!-- 店家/景點資訊顯示區 -->
+            <div id="place-info-container" class="hidden mb-6">
+                <div class="store-info-card rounded-2xl p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div id="place-icon" class="w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white">
+                                <i class="fas fa-store"></i>
+                            </div>
+                            <div>
+                                <h4 id="place-display-name" class="font-bold text-gray-800">名稱</h4>
+                                <p id="place-display-type" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                        <button onclick="clearPlaceInfo()" class="text-gray-400 hover:text-red-500 transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="place-details" class="space-y-2 text-sm text-gray-700">
+                        <!-- 動態填充 -->
+                    </div>
+                </div>
+            </div>
+
             <!-- 描述輸入區 -->
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-comment-dots mr-2 text-indigo-600"></i>
+                    <i class="fas fa-comment-dots mr-2 text-pink-600"></i>
                     這張照片想表達什麼？（簡短描述）
                 </label>
                 <textarea 
                     id="user-desc" 
-                    rows="4" 
-                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none resize-none bg-white text-gray-800 placeholder-gray-400 transition"
-                    placeholder="例如：今天跟好久不見的朋友去吃早午餐，超開心！或是：週末去爬山，看到超美的風景..."
+                    rows="3" 
+                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none resize-none bg-white text-gray-800 placeholder-gray-400 transition"
+                    placeholder="例如：今天跟好久不見的朋友去吃早午餐，超開心！或是：終於吃到夢寐以求的甜點..."
                 ></textarea>
+            </div>
+
+            <!-- 風格選擇區 -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-palette mr-2 text-pink-600"></i>
+                    選擇貼文風格（選擇 3-5 種）
+                </label>
+                <div id="style-chips" class="flex flex-wrap gap-2">
+                    <!-- 動態生成 -->
+                </div>
                 <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-lightbulb mr-1"></i>描述越詳細，生成的貼文越貼近您的想法
+                    <i class="fas fa-lightbulb mr-1"></i>選擇不同風格，AI 會為每種風格生成獨特的貼文
                 </p>
             </div>
 
@@ -257,14 +448,14 @@
                 disabled
             >
                 <i class="fas fa-magic"></i>
-                <span>✨ 生成貼文</span>
+                <span>✨ 生成多樣化貼文</span>
             </button>
 
             <!-- API Key 管理按鈕 -->
             <div class="mt-4 text-center">
                 <button 
                     onclick="showKeyModal()" 
-                    class="text-sm text-gray-600 hover:text-indigo-600 transition flex items-center gap-2 mx-auto"
+                    class="text-sm text-gray-600 hover:text-pink-600 transition flex items-center gap-2 mx-auto"
                 >
                     <i class="fas fa-cog"></i>
                     <span>管理 API Key</span>
@@ -274,22 +465,31 @@
 
         <!-- 載入中 -->
         <div id="loading" class="hidden glass-effect rounded-3xl p-8 text-center shadow-xl animate-fade-up">
-            <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
+            <div class="w-20 h-20 accent-gradient rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
                 <i class="fas fa-robot text-3xl text-white"></i>
             </div>
-            <p class="text-lg font-semibold text-gray-700 mb-2">AI 正在為您創作貼文</p>
+            <p class="text-lg font-semibold text-gray-700 mb-2">AI 正在為您創作多樣化貼文</p>
             <p class="text-sm text-gray-500 loading-dots">請稍候</p>
         </div>
 
         <!-- 結果區 -->
         <div id="result-area" class="hidden animate-fade-up" style="animation-delay: 0.2s">
             <div class="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl">
-                <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
-                        <i class="fas fa-sparkles"></i>
-                    </div>
-                    為您生成的貼文選項
-                </h3>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                        <div class="w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-sparkles"></i>
+                        </div>
+                        為您生成的貼文
+                    </h3>
+                    <button 
+                        onclick="generateCaption()" 
+                        class="btn-secondary text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2"
+                    >
+                        <i class="fas fa-sync-alt"></i>
+                        重新生成
+                    </button>
+                </div>
                 <div id="captions-container" class="space-y-4"></div>
             </div>
         </div>
@@ -307,10 +507,63 @@
     <script>
         let apiKey = localStorage.getItem('gemini_api_key');
         let selectedFile = null;
+        let currentPlaceInfo = null;
+        let currentPlaceType = 'store'; // 'store' 或 'attraction'
+        let selectedStyles = ['humorous', 'warm', 'foodie'];
+        
+        // 風格定義
+        const STYLES = {
+            humorous: { name: "幽默搞笑", emoji: "😂", color: "bg-yellow-100 text-yellow-800" },
+            warm: { name: "溫馨感性", emoji: "🥰", color: "bg-pink-100 text-pink-800" },
+            foodie: { name: "美食專家", emoji: "😋", color: "bg-orange-100 text-orange-800" },
+            literary: { name: "文青詩意", emoji: "📖", color: "bg-green-100 text-green-800" },
+            energetic: { name: "活力熱情", emoji: "🎉", color: "bg-red-100 text-red-800" },
+            minimalist: { name: "簡約俐落", emoji: "✓", color: "bg-gray-100 text-gray-800" },
+            storytelling: { name: "故事敘述", emoji: "📝", color: "bg-blue-100 text-blue-800" },
+            trendy: { name: "潮流網紅", emoji: "💅", color: "bg-purple-100 text-purple-800" }
+        };
 
-        // 初始化：檢查 API Key
-        if (!apiKey) {
-            setTimeout(() => showKeyModal(), 300);
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!apiKey) {
+                setTimeout(() => showKeyModal(), 300);
+            }
+            renderStyleChips();
+        });
+
+        // 渲染風格選擇器
+        function renderStyleChips() {
+            const container = document.getElementById('style-chips');
+            container.innerHTML = Object.entries(STYLES).map(([key, style]) => `
+                <div 
+                    class="style-chip px-4 py-2 rounded-full border-2 border-gray-200 flex items-center gap-2 ${selectedStyles.includes(key) ? 'selected' : ''}"
+                    data-style="${key}"
+                    onclick="toggleStyle('${key}')"
+                >
+                    <span class="style-emoji text-lg">${style.emoji}</span>
+                    <span class="text-sm font-medium">${style.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // 切換風格選擇
+        function toggleStyle(styleKey) {
+            const index = selectedStyles.indexOf(styleKey);
+            if (index > -1) {
+                if (selectedStyles.length > 3) {
+                    selectedStyles.splice(index, 1);
+                } else {
+                    showToast('至少需要選擇 3 種風格', 'error');
+                    return;
+                }
+            } else {
+                if (selectedStyles.length >= 5) {
+                    showToast('最多只能選擇 5 種風格', 'error');
+                    return;
+                }
+                selectedStyles.push(styleKey);
+            }
+            renderStyleChips();
         }
 
         // 顯示 API Key 模態
@@ -320,7 +573,6 @@
             modal.classList.remove('hidden');
             setTimeout(() => input.focus(), 100);
             
-            // 如果有已儲存的 key，顯示在輸入框（但用星號遮住）
             if (apiKey) {
                 input.value = apiKey.substring(0, 8) + '...';
                 input.type = 'text';
@@ -342,7 +594,6 @@
                 return;
             }
             
-            // 如果輸入的是已儲存的 key（顯示為 xxx...），不更新
             if (val.includes('...') && apiKey) {
                 closeKeyModal();
                 return;
@@ -352,6 +603,7 @@
             localStorage.setItem('gemini_api_key', apiKey);
             closeKeyModal();
             showToast('API Key 已儲存', 'success');
+            checkBtnState();
         }
 
         // 圖片預覽
@@ -359,7 +611,6 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            // 檢查檔案大小（10MB）
             if (file.size > 10 * 1024 * 1024) {
                 showToast('圖片檔案過大，請選擇小於 10MB 的圖片', 'error');
                 return;
@@ -406,6 +657,136 @@
             }
         });
 
+        // 切換搜尋類型
+        function setPlaceType(type) {
+            currentPlaceType = type;
+            const storeBtn = document.getElementById('type-store-btn');
+            const attractionBtn = document.getElementById('type-attraction-btn');
+            const nameInput = document.getElementById('place-name');
+            
+            if (type === 'store') {
+                storeBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white';
+                attractionBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300';
+                nameInput.placeholder = '例如：藍瓶咖啡、鼎泰豐、路易莎...';
+            } else {
+                attractionBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white';
+                storeBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300';
+                nameInput.placeholder = '例如：九份老街、日月潭、阿里山、墾丁...';
+            }
+        }
+
+        // 搜尋店家/景點
+        async function searchPlace() {
+            const placeName = document.getElementById('place-name').value.trim();
+            const location = document.getElementById('place-location').value.trim();
+            const typeLabel = currentPlaceType === 'store' ? '店家' : '景點';
+            
+            if (!placeName) {
+                showToast(`請輸入${typeLabel}名稱`, 'error');
+                return;
+            }
+
+            if (!apiKey) {
+                showToast('請先設定 API Key', 'error');
+                showKeyModal();
+                return;
+            }
+
+            const btn = document.getElementById('search-place-btn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const res = await fetch('/api/search-place', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey 
+                    },
+                    body: JSON.stringify({ 
+                        placeName, 
+                        location, 
+                        placeType: currentPlaceType 
+                    })
+                });
+
+                const data = await res.json();
+                
+                if (data.placeInfo && data.placeInfo.found) {
+                    currentPlaceInfo = data.placeInfo;
+                    displayPlaceInfo(data.placeInfo);
+                    showToast(`已找到${typeLabel}資訊！`, 'success');
+                } else {
+                    showToast(`找不到此${typeLabel}的詳細資訊，但仍可生成貼文`, 'info');
+                    currentPlaceInfo = null;
+                    document.getElementById('place-info-container').classList.add('hidden');
+                }
+
+            } catch (e) {
+                console.error(e);
+                showToast('搜尋失敗，請稍後再試', 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search"></i><span class="hidden md:inline">搜尋</span>';
+            }
+        }
+
+        // 顯示店家/景點資訊
+        function displayPlaceInfo(info) {
+            const container = document.getElementById('place-info-container');
+            const isAttraction = info.category === 'attraction';
+            
+            document.getElementById('place-display-name').textContent = info.name;
+            document.getElementById('place-display-type').textContent = info.type || '';
+            
+            // 更新圖示
+            const iconEl = document.getElementById('place-icon');
+            iconEl.innerHTML = isAttraction 
+                ? '<i class="fas fa-mountain"></i>' 
+                : '<i class="fas fa-store"></i>';
+            
+            let detailsHtml = '';
+            
+            if (info.signature) {
+                const label = isAttraction ? '特色' : '招牌';
+                detailsHtml += `<p><i class="fas fa-star text-yellow-500 mr-2"></i><strong>${label}：</strong>${info.signature}</p>`;
+            }
+            if (info.location) {
+                detailsHtml += `<p><i class="fas fa-map-marker-alt text-red-500 mr-2"></i><strong>地點：</strong>${info.location}</p>`;
+            }
+            if (info.priceRange) {
+                detailsHtml += `<p><i class="fas fa-dollar-sign text-green-500 mr-2"></i><strong>價位：</strong>${info.priceRange}</p>`;
+            }
+            if (info.ticketInfo) {
+                detailsHtml += `<p><i class="fas fa-ticket-alt text-blue-500 mr-2"></i><strong>門票：</strong>${info.ticketInfo}</p>`;
+            }
+            if (info.bestTime) {
+                detailsHtml += `<p><i class="fas fa-clock text-purple-500 mr-2"></i><strong>最佳時間：</strong>${info.bestTime}</p>`;
+            }
+            if (info.nearby && info.nearby.length > 0) {
+                detailsHtml += `<p><i class="fas fa-map text-indigo-500 mr-2"></i><strong>周邊：</strong>${info.nearby.join('、')}</p>`;
+            }
+            if (info.summary) {
+                detailsHtml += `<p class="mt-2 text-gray-600 italic">"${info.summary}"</p>`;
+            }
+            if (info.reviews && info.reviews.length > 0) {
+                detailsHtml += `<div class="flex flex-wrap gap-1 mt-2">${info.reviews.map(r => `<span class="info-tag text-xs px-2 py-1 rounded-full">${r}</span>`).join('')}</div>`;
+            }
+            
+            document.getElementById('place-details').innerHTML = detailsHtml;
+            container.classList.remove('hidden');
+        }
+
+        // 清除店家/景點資訊
+        function clearPlaceInfo() {
+            currentPlaceInfo = null;
+            document.getElementById('place-info-container').classList.add('hidden');
+            document.getElementById('place-name').value = '';
+            document.getElementById('place-location').value = '';
+        }
+
         // 檢查按鈕狀態
         document.getElementById('user-desc').addEventListener('input', checkBtnState);
 
@@ -428,6 +809,10 @@
             const formData = new FormData();
             formData.append('image', selectedFile);
             formData.append('description', desc);
+            formData.append('styles', JSON.stringify(selectedStyles));
+            if (currentPlaceInfo) {
+                formData.append('placeInfo', JSON.stringify(currentPlaceInfo));
+            }
 
             try {
                 const res = await fetch('/api/caption', {
@@ -447,7 +832,7 @@
                 }
 
                 renderResult(data.captions);
-                showToast(`成功生成 ${data.captions.length} 則貼文！`, 'success');
+                showToast(`成功生成 ${data.captions.length} 則多樣化貼文！`, 'success');
 
             } catch (e) {
                 console.error(e);
@@ -463,17 +848,35 @@
             document.getElementById('result-area').classList.remove('hidden');
             const container = document.getElementById('captions-container');
             
-            container.innerHTML = captions.map((caption, index) => `
-                <div class="result-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
+            // 風格顏色映射
+            const styleColors = {
+                '幽默搞笑': 'bg-yellow-100 text-yellow-800',
+                '溫馨感性': 'bg-pink-100 text-pink-800',
+                '美食專家': 'bg-orange-100 text-orange-800',
+                '文青詩意': 'bg-green-100 text-green-800',
+                '活力熱情': 'bg-red-100 text-red-800',
+                '簡約俐落': 'bg-gray-100 text-gray-800',
+                '故事敘述': 'bg-blue-100 text-blue-800',
+                '潮流網紅': 'bg-purple-100 text-purple-800'
+            };
+            
+            container.innerHTML = captions.map((item, index) => {
+                const caption = typeof item === 'string' ? item : item.caption;
+                const style = typeof item === 'string' ? '' : item.style;
+                const colorClass = styleColors[style] || 'bg-gray-100 text-gray-800';
+                
+                return `
+                <div class="result-card p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        <div class="flex-shrink-0 w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white font-bold text-lg">
                             ${index + 1}
                         </div>
                         <div class="flex-1">
+                            ${style ? `<span class="style-badge ${colorClass} mb-2 inline-block">${style}</span>` : ''}
                             <p class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(caption)}</p>
                             <button 
                                 onclick="copyText(this, ${JSON.stringify(caption)})" 
-                                class="copy-btn inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-semibold text-sm transition"
+                                class="copy-btn inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 font-semibold text-sm transition"
                                 title="複製貼文"
                             >
                                 <i class="far fa-copy"></i>
@@ -482,7 +885,10 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+            
+            // 滾動到結果區
+            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // 複製文字
@@ -492,14 +898,14 @@
                 const span = btn.querySelector('span');
                 icon.className = "fas fa-check";
                 span.textContent = '已複製';
-                btn.classList.add('bg-green-50', 'text-green-600');
-                btn.classList.remove('bg-indigo-50', 'text-indigo-600');
+                btn.classList.add('bg-green-100', 'text-green-700');
+                btn.classList.remove('bg-gray-100', 'text-gray-700');
                 
                 setTimeout(() => {
                     icon.className = "far fa-copy";
                     span.textContent = '複製';
-                    btn.classList.remove('bg-green-50', 'text-green-600');
-                    btn.classList.add('bg-indigo-50', 'text-indigo-600');
+                    btn.classList.remove('bg-green-100', 'text-green-700');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
                 }, 2000);
                 
                 showToast('已複製到剪貼簿', 'success');
@@ -518,6 +924,8 @@
             
             if (type === 'error') {
                 icon.className = 'fas fa-exclamation-circle text-red-500 text-xl';
+            } else if (type === 'info') {
+                icon.className = 'fas fa-info-circle text-blue-500 text-xl';
             } else {
                 icon.className = 'fas fa-check-circle text-green-500 text-xl';
             }
