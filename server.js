@@ -331,9 +331,9 @@ app.post('/api/caption', upload.single('image'), async (req, res) => {
             model: MODEL_NAME,
             generationConfig: { 
                 responseMimeType: "application/json",
-                temperature: 1.2,  // 提高溫度增加多樣性
-                topP: 0.95,
-                topK: 64  // 增加 topK 增加多樣性
+                temperature: 1.5,  // 高溫度確保每次生成都不同
+                topP: 0.98,
+                topK: 100  // 高 topK 增加詞彙多樣性
             } 
         });
 
@@ -401,21 +401,76 @@ ${placeInfo.summary ? `- 簡介：${placeInfo.summary}` : ''}
 ⚠️ 重要：所有貼文都必須反映這個 ${rating} 星的評價語調！`;
         }
 
-        // 生成隨機元素增加多樣性
-        const timeOfDay = new Date().getHours();
-        const randomOpenings = [
-            '用獨特的開場方式',
-            '用吸引人的第一句話',
-            '用讓人想繼續看下去的開頭',
-            '用有創意的破題方式'
+        // 生成多種隨機元素大幅增加多樣性
+        const now = new Date();
+        const timeOfDay = now.getHours();
+        const dayOfWeek = now.getDay();
+        const randomId = Math.random().toString(36).substring(2, 8);
+        
+        // 隨機開場方式
+        const openingStyles = [
+            '用問句開頭引發好奇',
+            '用感嘆句表達驚喜',
+            '用對話口吻像在跟朋友聊天',
+            '用描述場景的方式帶入',
+            '用自言自語的內心獨白',
+            '用倒敘法從結果說起',
+            '用比喻或類比開場',
+            '用誇張的形容詞開頭',
+            '用反問句製造懸念',
+            '用時間點切入'
         ];
-        const randomOpening = randomOpenings[Math.floor(Math.random() * randomOpenings.length)];
+        const randomOpening = openingStyles[Math.floor(Math.random() * openingStyles.length)];
+        
+        // 隨機寫作角度
+        const perspectives = [
+            '從味覺和嗅覺的角度描述',
+            '從視覺美感的角度描述',
+            '從情感和回憶的角度描述',
+            '從分享發現的角度描述',
+            '從日常小確幸的角度描述',
+            '從推薦給朋友的角度描述',
+            '從意外驚喜的角度描述',
+            '從療癒放鬆的角度描述'
+        ];
+        const randomPerspective = perspectives[Math.floor(Math.random() * perspectives.length)];
+        
+        // 隨機結尾方式
+        const endings = [
+            '用邀請互動的問句結尾',
+            '用感性的感悟收尾',
+            '用幽默的吐槽結尾',
+            '用期待下次的話語結尾',
+            '用推薦的呼籲結尾',
+            '用簡短有力的總結結尾'
+        ];
+        const randomEnding = endings[Math.floor(Math.random() * endings.length)];
+        
+        // 隨機情境設定
+        const scenarios = [
+            '假設這是週末的悠閒時光',
+            '假設這是工作後的犒賞',
+            '假設這是和朋友的聚會',
+            '假設這是獨自享受的時刻',
+            '假設這是意外的驚喜發現',
+            '假設這是期待已久的體驗',
+            '假設這是隨意逛街的收穫',
+            '假設這是特別紀念日的慶祝'
+        ];
+        const randomScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
 
         // 優化的 Prompt - 強調多樣性和事實性
         const prompt = `你是一位台灣的專業社群媒體(Facebook/Instagram)文案專家，擅長用繁體中文撰寫吸引人且真實的動態貼文。
 
 ⚠️ 語言要求：所有貼文必須完全使用繁體中文，不可出現任何外語（英文、日文、俄文等）詞彙，Emoji 除外。
 ${ratingContext}
+
+【本次創作指引 - 請嚴格遵守以下隨機設定，確保每次生成都不一樣】
+🎲 開場方式：${randomOpening}
+🎲 寫作角度：${randomPerspective}  
+🎲 結尾方式：${randomEnding}
+🎲 情境設定：${randomScenario}
+🎲 創作編號：${randomId}（請發揮與眾不同的創意）
 
 任務：觀察這張圖片，並結合用戶提供的背景描述「${userDescription}」，創作 ${stylesToUse.length} 則完全不同風格的貼文。
 ${placeContext}
@@ -425,16 +480,15 @@ ${styleRequirements}
 
 【重要規則】
 1. ⚠️ 必須全程使用繁體中文撰寫，不可出現任何英文、日文、韓文、俄文或其他外語文字！
-2. 每則貼文必須風格鮮明且差異明顯，不可雷同
-3. 貼文要自然、口語化，符合台灣社群媒體調性
-4. 適當加入相關的 Emoji 表情符號增加視覺吸引力
-5. 每則貼文長度控制在 50-200 字之間
-6. 內容要能引發互動（按讚、留言、分享）
+2. 🔄 這是第 N 次生成，請確保與之前的生成結果完全不同！
+3. 每則貼文的開頭、結構、用詞都必須有明顯差異
+4. 貼文要自然、口語化，符合台灣社群媒體調性
+5. 適當加入相關的 Emoji 表情符號增加視覺吸引力
+6. 每則貼文長度控制在 50-200 字之間
 7. 如果有店家資訊，務必參考真實資料，不可編造
-8. ${randomOpening}，避免使用太過制式的開頭
-9. 可以用問句、感嘆句、對話式等多種開頭方式
-10. 避免重複使用相同的表達方式和句型
-11. ⚠️ 不要在貼文中加入任何亂碼、無意義的數字或外語詞彙！
+8. 避免使用「今天」「終於」等常見開頭
+9. 每則貼文用不同的句型結構
+10. ⚠️ 不要在貼文中加入任何亂碼、無意義的數字或外語詞彙！
 
 請回傳一個 JSON 陣列，格式如下：
 [
