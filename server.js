@@ -401,17 +401,18 @@ ${placeInfo.summary ? `- 簡介：${placeInfo.summary}` : ''}
 ⚠️ 重要：所有貼文都必須反映這個 ${rating} 星的評價語調！`;
         }
 
-        // 生成隨機種子增加多樣性
-        const randomSeed = Math.floor(Math.random() * 10000);
+        // 生成隨機元素增加多樣性
         const timeOfDay = new Date().getHours();
-        const randomAdjectives = ['超棒的', '絕美的', '驚艷的', '療癒的', '完美的', '夢幻的', '精彩的', '難忘的'];
-        const randomAdj = randomAdjectives[Math.floor(Math.random() * randomAdjectives.length)];
+        const randomOpenings = [
+            '用獨特的開場方式',
+            '用吸引人的第一句話',
+            '用讓人想繼續看下去的開頭',
+            '用有創意的破題方式'
+        ];
+        const randomOpening = randomOpenings[Math.floor(Math.random() * randomOpenings.length)];
 
         // 優化的 Prompt - 強調多樣性和事實性
         const prompt = `你是一位專業的社群媒體(Facebook/Instagram)文案專家，擅長撰寫吸引人且真實的動態貼文。
-
-【創意種子：${randomSeed}】- 請基於這個數字發揮獨特創意，讓每次生成都不一樣！
-【今日靈感詞：${randomAdj}】- 可以融入這個詞彙增加新鮮感
 ${ratingContext}
 
 任務：觀察這張圖片，並結合用戶提供的背景描述「${userDescription}」，創作 ${stylesToUse.length} 則完全不同風格的貼文。
@@ -427,9 +428,10 @@ ${styleRequirements}
 4. 每則貼文長度控制在 50-200 字之間
 5. 內容要能引發互動（按讚、留言、分享）
 6. 如果有店家資訊，務必參考真實資料，不可編造
-7. 避免使用太過制式的開頭（不要每則都用「今天」開頭）
+7. ${randomOpening}，避免使用太過制式的開頭
 8. 可以用問句、感嘆句、對話式等多種開頭方式
 9. 避免重複使用相同的表達方式和句型
+10. ⚠️ 不要在貼文中加入任何數字編號、亂碼或無意義的數字！
 
 請回傳一個 JSON 陣列，格式如下：
 [
