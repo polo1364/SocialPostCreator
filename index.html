@@ -13,6 +13,12 @@
     <style>
         * {
             font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
         }
         
         body {
@@ -171,6 +177,17 @@
             transition: all 0.2s ease;
             cursor: pointer;
             user-select: none;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 640px) {
+            .style-chip {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            .style-chip .style-emoji {
+                font-size: 1rem;
+            }
         }
 
         .style-chip:hover {
@@ -245,7 +262,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen py-8 px-4">
+<body class="min-h-screen py-4 sm:py-8 px-3 sm:px-4">
     
     <!-- API Key 模態視窗 -->
     <div id="key-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden">
@@ -300,36 +317,36 @@
     <div class="max-w-4xl mx-auto">
         
         <!-- 標題區 -->
-        <header class="text-center mb-8 animate-fade-up">
-            <div class="inline-flex items-center justify-center w-20 h-20 accent-gradient rounded-3xl shadow-xl mb-6 rotate-3 hover:rotate-6 transition-transform">
-                <i class="fas fa-magic text-4xl text-white"></i>
+        <header class="text-center mb-6 sm:mb-8 animate-fade-up">
+            <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 accent-gradient rounded-2xl sm:rounded-3xl shadow-xl mb-4 sm:mb-6 rotate-3 hover:rotate-6 transition-transform">
+                <i class="fas fa-magic text-3xl sm:text-4xl text-white"></i>
             </div>
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">
+            <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-3 px-2">
                 AI 社群貼文產生器
             </h1>
-            <p class="text-white/80 text-lg md:text-xl">
+            <p class="text-white/80 text-sm sm:text-lg md:text-xl px-2">
                 智慧搜尋店家資訊，生成多樣化真實貼文
             </p>
-            <div class="mt-4 flex items-center justify-center gap-4 text-white/70 text-sm flex-wrap">
-                <span><i class="fas fa-robot mr-1"></i>Gemini 2.5 Flash</span>
-                <span><i class="fas fa-search mr-1"></i>智慧店家搜尋</span>
-                <span><i class="fas fa-palette mr-1"></i>多風格選擇</span>
+            <div class="mt-3 sm:mt-4 flex items-center justify-center gap-2 sm:gap-4 text-white/70 text-xs sm:text-sm flex-wrap px-2">
+                <span><i class="fas fa-robot mr-1"></i>Gemini AI</span>
+                <span><i class="fas fa-search mr-1"></i>智慧搜尋</span>
+                <span><i class="fas fa-palette mr-1"></i>多風格</span>
             </div>
         </header>
 
         <!-- 主要內容區 -->
-        <div class="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl mb-6 animate-fade-up" style="animation-delay: 0.1s">
+        <div class="glass-effect rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl mb-6 animate-fade-up" style="animation-delay: 0.1s">
             
             <!-- 圖片上傳區 -->
             <label for="file-upload" class="cursor-pointer block mb-6">
-                <div id="upload-box" class="upload-area rounded-2xl p-8 text-center relative overflow-hidden min-h-[280px] flex flex-col justify-center items-center">
+                <div id="upload-box" class="upload-area rounded-xl sm:rounded-2xl p-4 sm:p-8 text-center relative overflow-hidden min-h-[200px] sm:min-h-[280px] flex flex-col justify-center items-center">
                     <img id="preview-img" class="hidden max-h-full max-w-full object-contain rounded-xl shadow-lg">
                     <div id="upload-placeholder" class="text-gray-600">
-                        <div class="w-20 h-20 accent-gradient rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-lg">
-                            <i class="fas fa-cloud-upload-alt text-4xl text-white"></i>
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 accent-gradient rounded-2xl flex items-center justify-center mb-3 sm:mb-4 mx-auto shadow-lg">
+                            <i class="fas fa-cloud-upload-alt text-3xl sm:text-4xl text-white"></i>
                         </div>
-                        <p class="text-lg font-semibold mb-2">點擊或拖放上傳照片</p>
-                        <p class="text-sm text-gray-500">支援 JPG、PNG、GIF、WebP（最大 10MB）</p>
+                        <p class="text-base sm:text-lg font-semibold mb-2">點擊或拖放上傳照片</p>
+                        <p class="text-xs sm:text-sm text-gray-500">支援 JPG、PNG、GIF、WebP（最大 10MB）</p>
                     </div>
                 </div>
             </label>
@@ -347,7 +364,7 @@
                     <button 
                         id="type-store-btn"
                         onclick="setPlaceType('store')"
-                        class="place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white"
+                        class="place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-pink-600 text-white"
                     >
                         <i class="fas fa-store"></i>
                         <span>店家/餐廳</span>
@@ -355,33 +372,35 @@
                     <button 
                         id="type-attraction-btn"
                         onclick="setPlaceType('attraction')"
-                        class="place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        class="place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
                     >
                         <i class="fas fa-mountain"></i>
                         <span>景點/旅遊</span>
                     </button>
                 </div>
                 
-                <div class="flex gap-2">
-                    <input 
-                        type="text" 
-                        id="place-name" 
-                        class="flex-1 border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition"
-                        placeholder="例如：藍瓶咖啡、鼎泰豐、九份老街、日月潭..."
-                    >
-                    <input 
-                        type="text" 
-                        id="place-location" 
-                        class="w-32 border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition"
-                        placeholder="地區"
-                    >
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="flex gap-2 flex-1">
+                        <input 
+                            type="text" 
+                            id="place-name" 
+                            class="flex-1 min-w-0 border-2 border-gray-200 rounded-xl p-3 sm:p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition text-sm sm:text-base"
+                            placeholder="店家或景點名稱..."
+                        >
+                        <input 
+                            type="text" 
+                            id="place-location" 
+                            class="w-20 sm:w-28 border-2 border-gray-200 rounded-xl p-3 sm:p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition text-sm sm:text-base"
+                            placeholder="地區"
+                        >
+                    </div>
                     <button 
                         id="search-place-btn"
                         onclick="searchPlace()" 
-                        class="search-btn px-6 py-4 bg-gray-800 text-white rounded-xl font-semibold hover:bg-pink-600 transition flex items-center gap-2"
+                        class="search-btn px-4 sm:px-6 py-3 sm:py-4 bg-gray-800 text-white rounded-xl font-semibold hover:bg-pink-600 transition flex items-center justify-center gap-2 shrink-0"
                     >
                         <i class="fas fa-search"></i>
-                        <span class="hidden md:inline">搜尋</span>
+                        <span>搜尋</span>
                     </button>
                 </div>
                 <p class="text-xs text-gray-500 mt-2">
@@ -474,17 +493,17 @@
 
         <!-- 結果區 -->
         <div id="result-area" class="hidden animate-fade-up" style="animation-delay: 0.2s">
-            <div class="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                        <div class="w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white">
-                            <i class="fas fa-sparkles"></i>
+            <div class="glass-effect rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 accent-gradient rounded-xl flex items-center justify-center text-white shrink-0">
+                            <i class="fas fa-sparkles text-sm sm:text-base"></i>
                         </div>
-                        為您生成的貼文
+                        <span>為您生成的貼文</span>
                     </h3>
                     <button 
                         onclick="generateCaption()" 
-                        class="btn-secondary text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2"
+                        class="btn-secondary text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                         <i class="fas fa-sync-alt"></i>
                         重新生成
@@ -497,10 +516,10 @@
     </div>
 
     <!-- Toast 通知 -->
-    <div id="toast" class="fixed top-4 right-4 glass-effect rounded-xl px-6 py-4 shadow-2xl hidden toast z-50">
-        <div class="flex items-center gap-3">
-            <i id="toast-icon" class="fas fa-check-circle text-green-500 text-xl"></i>
-            <span id="toast-message" class="text-gray-800 font-semibold"></span>
+    <div id="toast" class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm glass-effect rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-2xl hidden toast z-50">
+        <div class="flex items-center gap-2 sm:gap-3">
+            <i id="toast-icon" class="fas fa-check-circle text-green-500 text-lg sm:text-xl shrink-0"></i>
+            <span id="toast-message" class="text-gray-800 font-semibold text-sm sm:text-base"></span>
         </div>
     </div>
 
@@ -664,14 +683,18 @@
             const attractionBtn = document.getElementById('type-attraction-btn');
             const nameInput = document.getElementById('place-name');
             
+            const baseClass = 'place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2';
+            const activeClass = baseClass + ' bg-pink-600 text-white';
+            const inactiveClass = baseClass + ' bg-gray-200 text-gray-700 hover:bg-gray-300';
+            
             if (type === 'store') {
-                storeBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white';
-                attractionBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300';
-                nameInput.placeholder = '例如：藍瓶咖啡、鼎泰豐、路易莎...';
+                storeBtn.className = activeClass;
+                attractionBtn.className = inactiveClass;
+                nameInput.placeholder = '店家或景點名稱...';
             } else {
-                attractionBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-pink-600 text-white';
-                storeBtn.className = 'place-type-btn flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300';
-                nameInput.placeholder = '例如：九份老街、日月潭、阿里山、墾丁...';
+                attractionBtn.className = activeClass;
+                storeBtn.className = inactiveClass;
+                nameInput.placeholder = '景點名稱...';
             }
         }
 
@@ -729,7 +752,7 @@
             } finally {
                 btn.classList.remove('loading');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-search"></i><span class="hidden md:inline">搜尋</span>';
+                btn.innerHTML = '<i class="fas fa-search"></i><span>搜尋</span>';
             }
         }
 
@@ -860,23 +883,27 @@
                 '潮流網紅': 'bg-purple-100 text-purple-800'
             };
             
+            // 儲存貼文內容供複製使用
+            window.captionsData = captions.map(item => typeof item === 'string' ? item : item.caption);
+            
             container.innerHTML = captions.map((item, index) => {
                 const caption = typeof item === 'string' ? item : item.caption;
                 const style = typeof item === 'string' ? '' : item.style;
                 const colorClass = styleColors[style] || 'bg-gray-100 text-gray-800';
                 
                 return `
-                <div class="result-card p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                <div class="result-card p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
+                    <div class="flex items-start gap-3 sm:gap-4">
+                        <div class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 accent-gradient rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg">
                             ${index + 1}
                         </div>
-                        <div class="flex-1">
-                            ${style ? `<span class="style-badge ${colorClass} mb-2 inline-block">${style}</span>` : ''}
-                            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(caption)}</p>
+                        <div class="flex-1 min-w-0">
+                            ${style ? `<span class="style-badge ${colorClass} mb-2 inline-block text-xs">${style}</span>` : ''}
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4 text-sm sm:text-base break-words">${escapeHtml(caption)}</p>
                             <button 
-                                onclick="copyText(this, ${JSON.stringify(caption)})" 
-                                class="copy-btn inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 font-semibold text-sm transition"
+                                data-index="${index}"
+                                onclick="copyCaption(this)"
+                                class="copy-btn inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 font-semibold text-xs sm:text-sm transition"
                                 title="複製貼文"
                             >
                                 <i class="far fa-copy"></i>
@@ -891,27 +918,72 @@
             document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // 複製文字
-        function copyText(btn, text) {
-            navigator.clipboard.writeText(text).then(() => {
-                const icon = btn.querySelector('i');
-                const span = btn.querySelector('span');
-                icon.className = "fas fa-check";
-                span.textContent = '已複製';
-                btn.classList.add('bg-green-100', 'text-green-700');
-                btn.classList.remove('bg-gray-100', 'text-gray-700');
-                
-                setTimeout(() => {
-                    icon.className = "far fa-copy";
-                    span.textContent = '複製';
-                    btn.classList.remove('bg-green-100', 'text-green-700');
-                    btn.classList.add('bg-gray-100', 'text-gray-700');
-                }, 2000);
-                
-                showToast('已複製到剪貼簿', 'success');
-            }).catch(() => {
-                showToast('複製失敗', 'error');
-            });
+        // 複製貼文
+        function copyCaption(btn) {
+            const index = parseInt(btn.getAttribute('data-index'));
+            const text = window.captionsData[index];
+            
+            if (!text) {
+                showToast('複製失敗：找不到貼文內容', 'error');
+                return;
+            }
+            
+            // 嘗試使用 Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess(btn);
+                }).catch(() => {
+                    // 如果 Clipboard API 失敗，使用備用方法
+                    fallbackCopy(text, btn);
+                });
+            } else {
+                // 瀏覽器不支援 Clipboard API，使用備用方法
+                fallbackCopy(text, btn);
+            }
+        }
+        
+        // 備用複製方法（使用 textarea）
+        function fallbackCopy(text, btn) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess(btn);
+                } else {
+                    showToast('複製失敗，請手動選取複製', 'error');
+                }
+            } catch (err) {
+                showToast('複製失敗，請手動選取複製', 'error');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+        
+        // 顯示複製成功
+        function showCopySuccess(btn) {
+            const icon = btn.querySelector('i');
+            const span = btn.querySelector('span');
+            icon.className = "fas fa-check";
+            span.textContent = '已複製';
+            btn.classList.add('bg-green-100', 'text-green-700');
+            btn.classList.remove('bg-gray-100', 'text-gray-700');
+            
+            setTimeout(() => {
+                icon.className = "far fa-copy";
+                span.textContent = '複製';
+                btn.classList.remove('bg-green-100', 'text-green-700');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            }, 2000);
+            
+            showToast('已複製到剪貼簿', 'success');
         }
 
         // 顯示 Toast 通知
