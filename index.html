@@ -260,6 +260,15 @@
             padding: 2px 8px;
             border-radius: 9999px;
         }
+        
+        /* 文字截斷 */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="min-h-screen py-4 sm:py-8 px-3 sm:px-4">
@@ -549,6 +558,41 @@
 
     </div>
 
+    <!-- 歷史記錄模態視窗 -->
+    <div id="history-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden overflow-y-auto py-4">
+        <div class="modal-content glass-effect rounded-3xl w-full max-w-2xl mx-4 p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-history text-pink-600"></i>
+                    歷史記錄
+                </h2>
+                <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="history-container" class="space-y-4">
+                <!-- 動態填充 -->
+            </div>
+            
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button 
+                    onclick="closeHistoryModal()" 
+                    class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition"
+                >
+                    關閉
+                </button>
+                <button 
+                    onclick="clearHistory()" 
+                    class="py-3 px-6 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-trash"></i>
+                    清除全部
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast 通知 -->
     <div id="toast" class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm glass-effect rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-2xl hidden toast z-50">
         <div class="flex items-center gap-2 sm:gap-3">
@@ -564,6 +608,7 @@
         let currentPlaceType = 'store'; // 'store' 或 'attraction'
         let selectedStyles = ['humorous', 'warm', 'foodie'];
         let currentRating = 0; // 0 表示未選擇
+        let captionsHistory = []; // 貼文歷史記錄
         
         // 星級對應的文字描述
         const RATING_TEXTS = {
@@ -574,6 +619,270 @@
             4: '😊 不錯，值得一試',
             5: '🤩 超讚，大力推薦！'
         };
+        
+        // ===== 暫存功能 =====
+        const STORAGE_KEYS = {
+            description: 'post_creator_description',
+            styles: 'post_creator_styles',
+            rating: 'post_creator_rating',
+            placeInfo: 'post_creator_place_info',
+            placeType: 'post_creator_place_type',
+            placeName: 'post_creator_place_name',
+            placeLocation: 'post_creator_place_location',
+            history: 'post_creator_history'
+        };
+        
+        // 儲存到暫存
+        function saveToStorage(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {
+                console.warn('儲存暫存失敗:', e);
+            }
+        }
+        
+        // 從暫存讀取
+        function loadFromStorage(key, defaultValue = null) {
+            try {
+                const stored = localStorage.getItem(key);
+                return stored ? JSON.parse(stored) : defaultValue;
+            } catch (e) {
+                console.warn('讀取暫存失敗:', e);
+                return defaultValue;
+            }
+        }
+        
+        // 儲存所有輸入狀態
+        function saveInputState() {
+            const desc = document.getElementById('user-desc').value;
+            const placeName = document.getElementById('place-name').value;
+            const placeLocation = document.getElementById('place-location').value;
+            
+            saveToStorage(STORAGE_KEYS.description, desc);
+            saveToStorage(STORAGE_KEYS.styles, selectedStyles);
+            saveToStorage(STORAGE_KEYS.rating, currentRating);
+            saveToStorage(STORAGE_KEYS.placeType, currentPlaceType);
+            saveToStorage(STORAGE_KEYS.placeName, placeName);
+            saveToStorage(STORAGE_KEYS.placeLocation, placeLocation);
+            if (currentPlaceInfo) {
+                saveToStorage(STORAGE_KEYS.placeInfo, currentPlaceInfo);
+            }
+        }
+        
+        // 恢復所有輸入狀態
+        function restoreInputState() {
+            // 恢復描述
+            const savedDesc = loadFromStorage(STORAGE_KEYS.description, '');
+            if (savedDesc) {
+                document.getElementById('user-desc').value = savedDesc;
+            }
+            
+            // 恢復風格選擇
+            const savedStyles = loadFromStorage(STORAGE_KEYS.styles);
+            if (savedStyles && Array.isArray(savedStyles) && savedStyles.length >= 3) {
+                selectedStyles = savedStyles;
+            }
+            
+            // 恢復星級
+            const savedRating = loadFromStorage(STORAGE_KEYS.rating, 0);
+            currentRating = savedRating;
+            
+            // 恢復搜尋類型
+            const savedPlaceType = loadFromStorage(STORAGE_KEYS.placeType, 'store');
+            currentPlaceType = savedPlaceType;
+            setPlaceType(savedPlaceType);
+            
+            // 恢復店家/景點名稱
+            const savedPlaceName = loadFromStorage(STORAGE_KEYS.placeName, '');
+            const savedPlaceLocation = loadFromStorage(STORAGE_KEYS.placeLocation, '');
+            if (savedPlaceName) {
+                document.getElementById('place-name').value = savedPlaceName;
+            }
+            if (savedPlaceLocation) {
+                document.getElementById('place-location').value = savedPlaceLocation;
+            }
+            
+            // 恢復店家/景點資訊
+            const savedPlaceInfo = loadFromStorage(STORAGE_KEYS.placeInfo);
+            if (savedPlaceInfo && savedPlaceInfo.found) {
+                currentPlaceInfo = savedPlaceInfo;
+                displayPlaceInfo(savedPlaceInfo);
+            }
+            
+            // 恢復歷史記錄
+            captionsHistory = loadFromStorage(STORAGE_KEYS.history, []);
+        }
+        
+        // 儲存生成結果到歷史
+        function saveToHistory(captions, description) {
+            const historyItem = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString('zh-TW'),
+                description: description,
+                placeInfo: currentPlaceInfo,
+                rating: currentRating,
+                captions: captions
+            };
+            
+            captionsHistory.unshift(historyItem); // 最新的放最前面
+            
+            // 只保留最近 10 筆
+            if (captionsHistory.length > 10) {
+                captionsHistory = captionsHistory.slice(0, 10);
+            }
+            
+            saveToStorage(STORAGE_KEYS.history, captionsHistory);
+        }
+        
+        // 清除暫存
+        function clearStorage() {
+            Object.values(STORAGE_KEYS).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            showToast('已清除所有暫存資料', 'success');
+        }
+        
+        // 顯示歷史記錄
+        function showHistory() {
+            const modal = document.getElementById('history-modal');
+            const container = document.getElementById('history-container');
+            
+            if (captionsHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p>尚無歷史記錄</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = captionsHistory.map((item, historyIndex) => `
+                    <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>${item.timestamp}
+                            </div>
+                            ${item.rating > 0 ? `<div class="text-yellow-500">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</div>` : ''}
+                        </div>
+                        <p class="text-gray-700 text-sm mb-3 line-clamp-2">
+                            <strong>描述：</strong>${escapeHtml(item.description)}
+                        </p>
+                        ${item.placeInfo && item.placeInfo.name ? `
+                            <p class="text-gray-600 text-xs mb-3">
+                                <i class="fas fa-map-marker-alt mr-1"></i>${item.placeInfo.name}
+                            </p>
+                        ` : ''}
+                        <div class="space-y-2">
+                            ${item.captions.slice(0, 2).map((cap, capIndex) => {
+                                const caption = typeof cap === 'string' ? cap : cap.caption;
+                                const style = typeof cap === 'string' ? '' : cap.style;
+                                return `
+                                    <div class="bg-white rounded-xl p-3 text-sm">
+                                        ${style ? `<span class="text-xs text-pink-600 font-medium">${style}</span>` : ''}
+                                        <p class="text-gray-700 line-clamp-2 mt-1">${escapeHtml(caption)}</p>
+                                        <button 
+                                            onclick="copyFromHistory(${historyIndex}, ${capIndex})"
+                                            class="mt-2 text-xs text-gray-500 hover:text-pink-600 transition"
+                                        >
+                                            <i class="far fa-copy mr-1"></i>複製
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${item.captions.length > 2 ? `
+                                <button 
+                                    onclick="loadHistoryItem(${historyIndex})"
+                                    class="w-full py-2 text-sm text-pink-600 hover:bg-pink-50 rounded-lg transition"
+                                >
+                                    查看全部 ${item.captions.length} 則貼文
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            modal.classList.remove('hidden');
+        }
+        
+        // 關閉歷史記錄
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+        
+        // 從歷史記錄複製
+        function copyFromHistory(historyIndex, captionIndex) {
+            const item = captionsHistory[historyIndex];
+            if (item && item.captions[captionIndex]) {
+                const caption = typeof item.captions[captionIndex] === 'string' 
+                    ? item.captions[captionIndex] 
+                    : item.captions[captionIndex].caption;
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(caption).then(() => {
+                        showToast('已複製到剪貼簿', 'success');
+                    }).catch(() => {
+                        fallbackCopyText(caption);
+                    });
+                } else {
+                    fallbackCopyText(caption);
+                }
+            }
+        }
+        
+        // 備用複製（用於歷史記錄）
+        function fallbackCopyText(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('已複製到剪貼簿', 'success');
+            } catch (err) {
+                showToast('複製失敗', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+        
+        // 載入歷史記錄項目
+        function loadHistoryItem(historyIndex) {
+            const item = captionsHistory[historyIndex];
+            if (item) {
+                // 儲存貼文資料供複製使用
+                window.captionsData = item.captions.map(cap => 
+                    typeof cap === 'string' ? cap : cap.caption
+                );
+                
+                // 顯示結果
+                renderResult(item.captions);
+                closeHistoryModal();
+                
+                // 滾動到結果區
+                setTimeout(() => {
+                    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+        
+        // 清除歷史記錄
+        function clearHistory() {
+            if (confirm('確定要清除所有歷史記錄嗎？')) {
+                captionsHistory = [];
+                saveToStorage(STORAGE_KEYS.history, []);
+                closeHistoryModal();
+                
+                // 移除歷史記錄按鈕
+                const historyBtn = document.getElementById('history-btn');
+                if (historyBtn) {
+                    historyBtn.parentElement.remove();
+                }
+                
+                showToast('已清除所有歷史記錄', 'success');
+            }
+        }
         
         // 風格定義
         const STYLES = {
@@ -592,9 +901,53 @@
             if (!apiKey) {
                 setTimeout(() => showKeyModal(), 300);
             }
+            
+            // 恢復暫存狀態
+            restoreInputState();
+            
             renderStyleChips();
-            updateRatingDisplay(); // 初始化顯示
+            updateRatingDisplay();
+            
+            // 如果有歷史記錄，顯示最近一筆
+            if (captionsHistory.length > 0) {
+                showHistoryButton();
+            }
+            
+            // 監聽輸入變化，自動儲存
+            document.getElementById('user-desc').addEventListener('input', debounce(saveInputState, 500));
+            document.getElementById('place-name').addEventListener('input', debounce(saveInputState, 500));
+            document.getElementById('place-location').addEventListener('input', debounce(saveInputState, 500));
         });
+        
+        // 防抖函數
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+        
+        // 顯示歷史記錄按鈕
+        function showHistoryButton() {
+            // 如果按鈕已存在則不重複添加
+            if (document.getElementById('history-btn')) return;
+            
+            const apiKeyBtn = document.querySelector('[onclick="showKeyModal()"]').parentElement;
+            const historyBtn = document.createElement('div');
+            historyBtn.className = 'mt-2 text-center';
+            historyBtn.innerHTML = `
+                <button 
+                    id="history-btn"
+                    onclick="showHistory()" 
+                    class="text-sm text-gray-600 hover:text-pink-600 transition flex items-center gap-2 mx-auto"
+                >
+                    <i class="fas fa-history"></i>
+                    <span>歷史記錄 (${captionsHistory.length})</span>
+                </button>
+            `;
+            apiKeyBtn.parentNode.insertBefore(historyBtn, apiKeyBtn.nextSibling);
+        }
         
         // 設定星級評分（點擊同一個星星可取消選擇）
         function setRating(rating) {
@@ -605,6 +958,7 @@
                 currentRating = rating;
             }
             updateRatingDisplay();
+            saveInputState(); // 自動儲存
         }
         
         // 更新星級顯示
@@ -670,6 +1024,7 @@
                 selectedStyles.push(styleKey);
             }
             renderStyleChips();
+            saveInputState(); // 自動儲存
         }
 
         // 顯示 API Key 模態
@@ -943,6 +1298,11 @@
                 }
 
                 renderResult(data.captions);
+                
+                // 儲存到歷史記錄
+                saveToHistory(data.captions, desc);
+                showHistoryButton();
+                
                 showToast(`成功生成 ${data.captions.length} 則多樣化貼文！`, 'success');
 
             } catch (e) {
