@@ -3,9 +3,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-delete process.env.ANTHROPIC_API_KEY;
-delete process.env.ACCESS_PASSWORD;
-
 const { app } = require('../server');
 const { parsePartialJson, repairJson } = require('../lib/partial-json');
 const { estimateCost } = require('../lib/pricing');
@@ -34,11 +31,9 @@ function photoForm(count = 1, extra = {}) {
     return fd;
 }
 
-test('health 與設定端點', async () => {
+test('health、模型與平台端點', async () => {
     const h = await fetch(`${base}/health`).then(r => r.json());
     assert.equal(h.status, 'ok');
-    const cfg = await fetch(`${base}/api/config`).then(r => r.json());
-    assert.deepEqual(cfg, { serverKey: false, needsPassword: false, defaultModel: 'claude-sonnet-5-5' });
     const models = await fetch(`${base}/api/models`).then(r => r.json());
     assert.equal(models.default, 'claude-sonnet-5-5');
     const platforms = await fetch(`${base}/api/platforms`).then(r => r.json());
@@ -87,8 +82,12 @@ test('搜尋：沒有名稱回 400', async () => {
     assert.equal(res.status, 400);
 });
 
-test('沒有站長模式時 check-access 回 404', async () => {
-    assert.equal((await fetch(`${base}/api/check-access`, { method: 'POST' })).status, 404);
+test('沒有 Key 時搜尋與微調都回 401', async () => {
+    const json = { 'Content-Type': 'application/json' };
+    const search = await fetch(`${base}/api/search-place`, { method: 'POST', headers: json, body: JSON.stringify({ placeName: 'x' }) });
+    assert.equal(search.status, 401);
+    const refine = await fetch(`${base}/api/refine`, { method: 'POST', headers: json, body: JSON.stringify({ caption: '測試', instruction: '短一點' }) });
+    assert.equal(refine.status, 401);
 });
 
 test('串流 JSON 修補：寫到一半也能解析', () => {

@@ -249,7 +249,7 @@
             <button id="history-btn" onclick="showHistory()" class="pill hidden" title="訂單紀錄">
                 <i class="fas fa-receipt"></i><span id="history-count">0</span>
             </button>
-            <button onclick="showKeyModal()" class="pill" title="設定 API Key 與模型">
+            <button onclick="showKeyModal()" class="pill" title="設定 Claude API Key 與模型">
                 <span id="key-dot" class="dot bg-red-400"></span>
                 <span id="key-status">未設定 API Key</span>
                 <i class="fas fa-gear text-xs opacity-70"></i>
@@ -408,11 +408,6 @@
                 <h2 id="key-modal-title" class="text-xl font-black text-center mt-1">廚房設定</h2>
                 <hr class="rule-double">
 
-                <div id="cred-tabs" class="seg mb-4 hidden">
-                    <button type="button" id="tab-own" onclick="setCredTab('own')" class="active">我自己的 Key</button>
-                    <button type="button" id="tab-server" onclick="setCredTab('server')">站長通行碼</button>
-                </div>
-
                 <div id="cred-own">
                     <label for="api-key-input" class="sec-title block mb-1">Claude API Key</label>
                     <div class="relative">
@@ -421,15 +416,6 @@
                     </div>
                     <p id="key-current" class="text-xs text-[color:var(--ink-3)] mt-2 mono hidden"></p>
                     <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="inline-block text-xs mt-2 font-bold text-[color:var(--stamp)] hover:underline">到 Anthropic Console 取得 API Key <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
-                </div>
-
-                <div id="cred-server" class="hidden">
-                    <p class="text-sm text-[color:var(--ink-2)] mb-2">這個網站的站長提供了共用額度。<span id="server-pw-hint"></span></p>
-                    <div id="server-pw-wrap">
-                        <label for="access-input" class="sec-title block mb-1">通行碼</label>
-                        <input type="password" id="access-input" class="field mono" placeholder="向站長索取" autocomplete="off">
-                    </div>
-                    <p class="text-xs text-[color:var(--ink-3)] mt-2">共用額度有使用次數限制；常用的話建議改用自己的 Key。</p>
                 </div>
 
                 <hr class="rule">
@@ -538,8 +524,6 @@
 
         const STORAGE_KEYS = {
             apiKey: 'claude_api_key',
-            access: 'post_creator_access',
-            credMode: 'post_creator_cred_mode',
             model: 'claude_model',
             description: 'post_creator_description',
             styles: 'post_creator_styles',
@@ -564,10 +548,6 @@
 
         // ===== 狀態 =====
         let apiKey = null;
-        let accessPassword = '';
-        let credMode = 'own'; // own | server
-        let serverConfig = { serverKey: false, needsPassword: false };
-        let pendingCredTab = 'own';
         let currentModel = DEFAULT_MODEL;
         let pendingModel = DEFAULT_MODEL;
         let selectedFiles = []; // [{ file, url }]
@@ -638,11 +618,9 @@
 
         function restoreInputState() {
             apiKey = loadFromStorage(STORAGE_KEYS.apiKey, null);
-            accessPassword = loadFromStorage(STORAGE_KEYS.access, '') || '';
-            credMode = loadFromStorage(STORAGE_KEYS.credMode, 'own') === 'server' ? 'server' : 'own';
             const savedModel = loadFromStorage(STORAGE_KEYS.model, DEFAULT_MODEL);
             currentModel = MODELS.some(m => m.id === savedModel) ? savedModel : DEFAULT_MODEL;
-            removeFromStorage('gemini_api_key');
+            ['gemini_api_key', 'post_creator_access', 'post_creator_cred_mode'].forEach(removeFromStorage);
 
             $('user-desc').value = loadFromStorage(STORAGE_KEYS.description, '') || '';
             const savedStyles = loadFromStorage(STORAGE_KEYS.styles);
@@ -680,7 +658,6 @@
             updateHistoryButton();
             updateDescCount();
 
-            await loadServerConfig();
             updateKeyStatus();
             checkBtnState();
             if (!hasCredential()) setTimeout(showKeyModal, 300);
@@ -693,7 +670,6 @@
                 if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); searchPlace(); }
             }));
             $('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
-            $('access-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
             $('voice-input').addEventListener('input', () => { $('voice-count').textContent = `${$('voice-input').value.length}/3000`; });
 
             document.addEventListener('keydown', e => {
@@ -773,21 +749,8 @@
             }
         }
 
-        // ===== 金鑰、站長模式、模型 =====
-        async function loadServerConfig() {
-            try {
-                const res = await fetch('/api/config');
-                if (res.ok) serverConfig = await res.json();
-            } catch (e) { /* 離線時略過 */ }
-            if (!serverConfig.serverKey) credMode = 'own';
-        }
-
-        function usingServer() { return credMode === 'server' && serverConfig.serverKey; }
-
-        function hasCredential() {
-            if (credMode === 'own') return !!apiKey;
-            return serverConfig.serverKey && (!serverConfig.needsPassword || !!accessPassword);
-        }
+        // ===== 金鑰與模型 =====
+        function hasCredential() { return !!apiKey; }
 
         function maskKey(k) { return k.length > 16 ? `${k.slice(0, 10)}…${k.slice(-4)}` : '••••'; }
 
@@ -795,8 +758,7 @@
             const model = MODELS.find(m => m.id === currentModel);
             const ok = hasCredential();
             $('key-dot').className = `dot ${ok ? 'bg-emerald-400' : 'bg-red-400'}`;
-            const name = model ? model.label.replace('Claude ', '') : '已設定';
-            $('key-status').textContent = !ok ? '未設定 API Key' : usingServer() ? `站長額度 · ${name}` : name;
+            $('key-status').textContent = !ok ? '未設定 API Key' : (model ? model.label.replace('Claude ', '') : '已設定');
         }
 
         function renderModelOptions() {
@@ -811,22 +773,9 @@
 
         function selectModel(id) { pendingModel = id; renderModelOptions(); }
 
-        function setCredTab(tab) {
-            pendingCredTab = tab;
-            $('tab-own').classList.toggle('active', tab === 'own');
-            $('tab-server').classList.toggle('active', tab === 'server');
-            $('cred-own').classList.toggle('hidden', tab !== 'own');
-            $('cred-server').classList.toggle('hidden', tab !== 'server');
-        }
-
         function showKeyModal() {
             pendingModel = currentModel;
             renderModelOptions();
-            $('cred-tabs').classList.toggle('hidden', !serverConfig.serverKey);
-            $('server-pw-wrap').classList.toggle('hidden', !serverConfig.needsPassword);
-            $('server-pw-hint').textContent = serverConfig.needsPassword ? '輸入站長給你的通行碼就能直接用。' : '不用填 Key 就能直接用。';
-            setCredTab(serverConfig.serverKey ? credMode : 'own');
-            $('access-input').value = accessPassword || '';
             const input = $('api-key-input');
             input.value = '';
             input.type = 'password';
@@ -843,7 +792,7 @@
             }
             renderSpend();
             $('key-modal').classList.remove('hidden');
-            setTimeout(() => (pendingCredTab === 'own' ? input : $('access-input')).focus(), 50);
+            setTimeout(() => input.focus(), 50);
         }
 
         function closeKeyModal() {
@@ -858,28 +807,14 @@
             $('key-eye').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
         }
 
-        async function saveKey() {
-            if (pendingCredTab === 'server') {
-                const pw = $('access-input').value.trim();
-                if (serverConfig.needsPassword) {
-                    if (!pw) return showToast('請輸入通行碼', 'error');
-                    const res = await fetch('/api/check-access', { method: 'POST', headers: { 'x-access-password': pw } }).catch(() => null);
-                    if (!res || !res.ok) return showToast('通行碼錯誤', 'error');
-                }
-                accessPassword = pw;
-                saveToStorage(STORAGE_KEYS.access, accessPassword);
-                credMode = 'server';
-            } else {
-                const val = $('api-key-input').value.trim();
-                if (!val && !apiKey) return showToast('請輸入 API Key', 'error');
-                if (val) {
-                    if (!val.startsWith('sk-ant-')) return showToast('Claude API Key 通常以 sk-ant- 開頭，請確認', 'error');
-                    apiKey = val;
-                    saveToStorage(STORAGE_KEYS.apiKey, apiKey);
-                }
-                credMode = 'own';
+        function saveKey() {
+            const val = $('api-key-input').value.trim();
+            if (!val && !apiKey) return showToast('請輸入 API Key', 'error');
+            if (val) {
+                if (!val.startsWith('sk-ant-')) return showToast('Claude API Key 通常以 sk-ant- 開頭，請確認', 'error');
+                apiKey = val;
+                saveToStorage(STORAGE_KEYS.apiKey, apiKey);
             }
-            saveToStorage(STORAGE_KEYS.credMode, credMode);
             currentModel = pendingModel;
             saveToStorage(STORAGE_KEYS.model, currentModel);
             closeKeyModal();
@@ -899,10 +834,7 @@
         }
 
         function apiHeaders(extra = {}) {
-            const h = { 'x-model': currentModel, ...extra };
-            if (usingServer()) { if (accessPassword) h['x-access-password'] = accessPassword; }
-            else if (apiKey) h['x-api-key'] = apiKey;
-            return h;
+            return { 'x-api-key': apiKey, 'x-model': currentModel, ...extra };
         }
 
         function requireCredential() {
@@ -939,7 +871,7 @@
         }
         function renderOrderCost() {
             const o = currentOrder;
-            $('result-cost').textContent = o && typeof o.cost === 'number' && o.cost > 0 ? `本單估算 ${fmtCost(o.cost)}${usingServer() ? ' · 站長額度' : ''}` : '';
+            $('result-cost').textContent = o && typeof o.cost === 'number' && o.cost > 0 ? `本單估算 ${fmtCost(o.cost)}` : '';
         }
 
         // ===== 星級 =====
@@ -1360,7 +1292,7 @@
                     order.items.forEach(it => { it.streaming = false; });
                     if (currentOrder === order) renderOrder(false, false);
                 }
-                if (/API Key|通行碼/.test(e.message || '')) showKeyModal();
+                if (/API Key/.test(e.message || '')) showKeyModal();
             } finally {
                 isGenerating = false;
                 $('loading').classList.add('hidden');
@@ -1584,7 +1516,7 @@
             } catch (e) {
                 console.error(e);
                 showToast(e.message || '修改失敗，請稍後再試', 'error');
-                if (/API Key|通行碼/.test(e.message || '')) showKeyModal();
+                if (/API Key/.test(e.message || '')) showKeyModal();
             } finally {
                 item.busy = false;
                 item.pending = null;
@@ -1633,7 +1565,7 @@
                 item.versions.pop();
                 item.idx = prevIdx;
                 showToast(e.message || '重做失敗，請稍後再試', 'error');
-                if (/API Key|通行碼/.test(e.message || '')) showKeyModal();
+                if (/API Key/.test(e.message || '')) showKeyModal();
             } finally {
                 item.streaming = false;
                 if (currentOrder === o) renderTicket(i);

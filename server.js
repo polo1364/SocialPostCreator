@@ -2,14 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { parsePartialJson } = require('./lib/partial-json');
 const { estimateCost } = require('./lib/pricing');
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.set('trust proxy', 1);
 
 // ===== 模型設定 =====
 const MODELS = {
@@ -25,48 +23,12 @@ function resolveModel(req) {
     return MODELS[m] ? m : DEFAULT_MODEL;
 }
 
-// ===== 金鑰來源 =====
-// 1. 使用者在前端填的 Key（x-api-key）優先。
-// 2. 站長模式：伺服器設了 ANTHROPIC_API_KEY 時，沒填 Key 的人也能用；
-//    若另設 ACCESS_PASSWORD，需要帶正確的通行碼（x-access-password）。
-//    站長 Key 依 IP 限流，避免被濫用。
-const SERVER_KEY = (process.env.ANTHROPIC_API_KEY || '').trim() || null;
-const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || null;
-const SERVER_RATE_LIMIT = parseInt(process.env.SERVER_RATE_LIMIT, 10) || 40; // 每小時每個 IP
-const rateBuckets = new Map();
-
-function passwordMatches(given) {
-    if (!ACCESS_PASSWORD) return true;
-    const a = crypto.createHash('sha256').update(String(given || '')).digest();
-    const b = crypto.createHash('sha256').update(ACCESS_PASSWORD).digest();
-    return crypto.timingSafeEqual(a, b);
-}
-
-function takeRateToken(ip) {
-    const now = Date.now();
-    const hourAgo = now - 60 * 60 * 1000;
-    const list = (rateBuckets.get(ip) || []).filter(t => t > hourAgo);
-    if (list.length >= SERVER_RATE_LIMIT) {
-        rateBuckets.set(ip, list);
-        return false;
-    }
-    list.push(now);
-    rateBuckets.set(ip, list);
-    if (rateBuckets.size > 5000) {
-        for (const [k, v] of rateBuckets) if (!v.some(t => t > hourAgo)) rateBuckets.delete(k);
-    }
-    return true;
-}
-
+// ===== 金鑰 =====
+// 使用者在前端手動填入自己的 Claude API Key（x-api-key），伺服器不保存任何金鑰。
 function resolveCredential(req) {
     const userKey = (req.headers['x-api-key'] || '').trim();
-    if (userKey) return { apiKey: userKey, source: 'user' };
-    if (!SERVER_KEY) return { error: { status: 401, message: '請先設定 Claude API Key' } };
-    if (!passwordMatches(req.headers['x-access-password'])) {
-        return { error: { status: 401, message: ACCESS_PASSWORD && req.headers['x-access-password'] ? '通行碼錯誤' : '請輸入站長通行碼或自己的 API Key' } };
-    }
-    if (!takeRateToken(req.ip)) return { error: { status: 429, message: '站長額度用得太快了，請稍後再試，或改用自己的 API Key' } };
-    return { apiKey: SERVER_KEY, source: 'server' };
+    if (!userKey) return { error: { status: 401, message: '請先設定 Claude API Key' } };
+    return { apiKey: userKey };
 }
 
 // 建立請求參數：Opus / Sonnet 開啟伺服器端拒答備援（fallbacks: "default"）
@@ -163,17 +125,6 @@ app.get('/health', (req, res) => {
 
 app.get('/api/models', (req, res) => {
     res.json({ default: DEFAULT_MODEL, models: Object.entries(MODELS).map(([id, m]) => ({ id, label: m.label })) });
-});
-
-app.get('/api/config', (req, res) => {
-    res.json({ serverKey: !!SERVER_KEY, needsPassword: !!(SERVER_KEY && ACCESS_PASSWORD), defaultModel: DEFAULT_MODEL });
-});
-
-// 只檢查通行碼是否正確，不呼叫 Claude
-app.post('/api/check-access', (req, res) => {
-    if (!SERVER_KEY) return res.status(404).json({ ok: false, error: '這個網站沒有開啟站長模式' });
-    if (!passwordMatches(req.headers['x-access-password'])) return res.status(401).json({ ok: false, error: '通行碼錯誤' });
-    res.json({ ok: true });
 });
 
 // ===== 店家/景點搜尋 =====
@@ -487,7 +438,7 @@ ${styleRequirements}
 
 再輸出 captions 陣列，每項的 style 填上方的風格名稱（例如「幽默搞笑」），caption 填貼文內容。`;
 
-        log(`[${model}] [${platform}] 為「${userDescription.slice(0, 30)}」生成 ${stylesToUse.length} 則貼文（${files.length} 張照片${redoStyle ? '，重做' : ''}${cred.source === 'server' ? '，站長 Key' : ''}）`);
+        log(`[${model}] [${platform}] 為「${userDescription.slice(0, 30)}」生成 ${stylesToUse.length} 則貼文（${files.length} 張照片${redoStyle ? '，重做' : ''}）`);
 
         const client = new Anthropic({ apiKey: cred.apiKey });
         stream = client.beta.messages.stream(buildParams(model, {
@@ -669,7 +620,6 @@ if (require.main === module) {
         console.log('🚀 貼文廚房已上線');
         console.log(`📍 本地端: http://localhost:${port}`);
         console.log(`🤖 預設模型: ${MODELS[DEFAULT_MODEL].label}（可在前端切換）`);
-        if (SERVER_KEY) console.log(`🔑 站長模式：已設定伺服器 API Key${ACCESS_PASSWORD ? '，需要通行碼' : '（未設通行碼，任何人都能使用，請留意費用）'}，每 IP 每小時 ${SERVER_RATE_LIMIT} 次`);
     });
 }
 

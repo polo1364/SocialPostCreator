@@ -23,18 +23,6 @@ npm start
 
 打開 http://localhost:3000 ，在右上角設定填入自己的 Claude API Key（到 [Anthropic Console](https://console.anthropic.com/settings/keys) 取得）。
 
-## 站長模式（選用）
-
-在伺服器設定環境變數，就能讓沒有 API Key 的人用你的額度：
-
-| 變數 | 說明 |
-|---|---|
-| `ANTHROPIC_API_KEY` | 站長的 Claude API Key；設定後才會開啟站長模式 |
-| `ACCESS_PASSWORD` | 通行碼；建議一定要設，否則任何人都能用你的額度 |
-| `SERVER_RATE_LIMIT` | 每個 IP 每小時可用次數，預設 40 |
-
-使用者在設定裡切到「站長通行碼」並輸入通行碼即可使用；自己填了 Key 的人仍然用自己的 Key。
-
 ## 開發
 
 ```bash
