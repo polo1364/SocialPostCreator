@@ -1,22 +1,26 @@
 {
   "name": "social-post-creator",
   "version": "1.0.0",
-  "description": "AI-powered social media post generator using Gemini",
+  "description": "AI-powered social media post generator using Claude",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["ai", "gemini", "social-media", "post-generator"],
+  "keywords": [
+    "ai",
+    "gemini",
+    "social-media",
+    "post-generator"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "express": "^4.18.2",
+    "@anthropic-ai/sdk": "^1.11.0",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
     "multer": "^1.4.5-lts.1"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
-

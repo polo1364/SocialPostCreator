@@ -3,625 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI 驅動的社群媒體貼文產生器，使用 Gemini AI 為您的照片生成專業貼文">
-    <title>AI 社群貼文產生器 | Social Post Creator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="description" content="貼文廚房：上傳照片點單，Claude 幫你出單社群貼文，還能像聊天一樣微調">
+    <meta name="theme-color" content="#1f1f22">
+    <title>貼文廚房 · AI 社群貼文產生器</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            box-sizing: border-box;
+        :root {
+            --counter: #1f1f22;
+            --paper: #fbfaf6;
+            --paper-2: #f3f0e7;
+            --ink: #1c1b19;
+            --ink-2: #57534a;
+            --ink-3: #8c877b;
+            --rule: #bdb7a8;
+            --stamp: #d6452f;
+            --stamp-soft: #fbe3dc;
+            --chat: #6d4fd1;
+            --chat-soft: #efeaff;
+            --note: #fff3a8;
+            --mono: 'Courier Prime', 'Noto Sans TC', ui-monospace, monospace;
+            --sans: 'Noto Sans TC', system-ui, -apple-system, 'Segoe UI', sans-serif;
         }
-        
-        html, body {
-            overflow-x: hidden;
-            max-width: 100vw;
-        }
-        
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; }
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            margin: 0;
+            font-family: var(--sans);
+            color: var(--ink);
+            background-color: var(--counter);
+            background-image:
+                radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1.4px),
+                radial-gradient(60rem 30rem at 50% -10%, rgba(214, 69, 47, 0.18), transparent 60%);
+            background-size: 7px 7px, auto;
+            background-attachment: fixed;
             min-height: 100vh;
         }
+        .mono { font-family: var(--mono); }
 
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        /* ===== 紙張（鋸齒邊） ===== */
+        .paper-wrap { filter: drop-shadow(0 14px 22px rgba(0,0,0,0.45)); }
+        .paper {
+            --s: 9px;
+            background: var(--paper);
+            padding: calc(var(--s) + 1.25rem) 1.5rem calc(var(--s) + 1.25rem);
+            -webkit-mask:
+                conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--s)) 51% repeat-x,
+                conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--s)) 51% repeat-x;
+                    mask:
+                conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--s)) 51% repeat-x,
+                conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--s)) 51% repeat-x;
         }
-
-        .dark-glass {
-            background: rgba(26, 26, 46, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .paper.no-top {
+            padding-top: 1.25rem;
+            -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--s)) 100% repeat-x;
+                    mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--s)) 100% repeat-x;
         }
+        .rule { border: 0; border-top: 1.5px dashed var(--rule); margin: 1rem 0; }
+        .rule-double { border: 0; border-top: 3px double var(--ink); margin: .9rem 0; }
 
-        .gradient-text {
-            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 50%, #ffd93d 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        /* ===== 點單表 ===== */
+        .sec-head { display: flex; align-items: baseline; gap: .6rem; margin-bottom: .7rem; }
+        .sec-no { font-family: var(--mono); font-weight: 700; color: var(--stamp); font-size: .95rem; }
+        .sec-title { font-weight: 900; font-size: 1rem; letter-spacing: .02em; }
+        .sec-hint { font-size: .75rem; color: var(--ink-3); }
+        .field {
+            width: 100%; border: 0; border-bottom: 1.5px solid var(--rule); background: transparent;
+            padding: .55rem .15rem; color: var(--ink); outline: none; font-size: .95rem; font-family: var(--sans);
+            transition: border-color .15s, background .15s; border-radius: 0;
         }
+        .field::placeholder { color: #b3ad9f; }
+        .field:focus { border-color: var(--ink); background: rgba(0,0,0,0.025); }
+        textarea.field { border: 1.5px solid var(--rule); border-radius: .4rem; padding: .7rem .8rem; resize: none; line-height: 1.7; }
+        textarea.field:focus { border-color: var(--ink); }
 
-        .accent-gradient {
-            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+        .seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: .4rem; overflow: hidden; }
+        .seg button { padding: .4rem .85rem; font-size: .85rem; font-weight: 700; color: var(--ink); background: transparent; transition: background .15s; }
+        .seg button + button { border-left: 1.5px solid var(--ink); }
+        .seg button.active { background: var(--ink); color: var(--paper); }
+
+        /* 菜單品項（風格） */
+        .menu-item {
+            display: flex; align-items: center; gap: .55rem; width: 100%; text-align: left; padding: .45rem .25rem;
+            border-radius: .3rem; cursor: pointer; transition: background .12s; font-size: .95rem;
         }
-
-        .animate-fade-up {
-            animation: fadeUp 0.6s ease-out forwards;
-            opacity: 0;
-            transform: translateY(20px);
+        .menu-item:hover { background: rgba(0,0,0,0.04); }
+        .menu-item .box {
+            width: 1.15rem; height: 1.15rem; border: 1.5px solid var(--ink); border-radius: .2rem; display: inline-flex;
+            align-items: center; justify-content: center; font-size: .7rem; color: transparent; flex-shrink: 0;
         }
+        .menu-item.selected .box { background: var(--ink); color: var(--paper); }
+        .menu-item.selected .name { font-weight: 700; }
+        .menu-item .leader { flex: 1; border-bottom: 2px dotted var(--rule); transform: translateY(-.25rem); min-width: 1rem; }
+        .menu-item .tag { font-family: var(--mono); font-size: .8rem; color: var(--ink-3); }
+        .menu-item.selected .tag { color: var(--stamp); font-weight: 700; }
 
-        @keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .star-btn { font-size: 1.55rem; line-height: 1; color: #d8d2c2; transition: transform .12s, color .12s; }
+        .star-btn:hover { transform: scale(1.15); }
+        .star-btn.on { color: var(--stamp); }
+
+        /* 照片 */
+        .drop {
+            border: 1.5px dashed var(--rule); border-radius: .5rem; min-height: 170px; transition: background .15s, border-color .15s;
+            background: repeating-linear-gradient(-45deg, transparent 0 10px, rgba(0,0,0,0.018) 10px 20px);
         }
+        .drop:hover, .drop.dragover { border-color: var(--ink); background-color: rgba(0,0,0,0.03); }
+        .polaroid { background: #fff; padding: 6px 6px 22px; box-shadow: 0 3px 8px rgba(0,0,0,0.18); position: relative; transition: transform .15s; }
+        .polaroid:nth-child(odd) { transform: rotate(-2deg); }
+        .polaroid:nth-child(even) { transform: rotate(1.5deg); }
+        .polaroid:hover { transform: rotate(0) scale(1.03); z-index: 2; }
+        .polaroid .cap { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font-family: var(--mono); font-size: .7rem; color: var(--ink-2); }
+        .tiny-btn { width: 1.7rem; height: 1.7rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; }
 
-        .animate-pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        /* 按鈕 */
+        .btn-ink {
+            background: var(--ink); color: var(--paper); font-weight: 900; letter-spacing: .08em; border-radius: .4rem;
+            transition: transform .12s, background .15s, opacity .15s;
         }
+        .btn-ink:hover:not(:disabled) { background: #000; transform: translateY(-1px); }
+        .btn-ink:disabled { opacity: .35; cursor: not-allowed; }
+        .btn-line { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; border-radius: .4rem; background: transparent; transition: background .15s; }
+        .btn-line:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
+        .btn-line:disabled { opacity: .4; cursor: not-allowed; }
 
-        .upload-area {
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 107, 107, 0.1) 100%);
-            border: 2px dashed rgba(233, 69, 96, 0.4);
+        /* 頂部 */
+        .sign { font-family: var(--mono); color: #fff; letter-spacing: .12em; }
+        .sign .lamp { color: #ff8a6b; text-shadow: 0 0 12px rgba(255, 110, 80, 0.6); }
+        .pill {
+            display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .85rem; border-radius: 999px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.9);
+            font-size: .8rem; transition: background .15s;
         }
+        .pill:hover { background: rgba(255,255,255,0.14); }
+        .dot { width: .5rem; height: .5rem; border-radius: 999px; display: inline-block; }
 
-        .upload-area:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(233, 69, 96, 0.2);
-            border-color: #e94560;
+        /* 出單機 */
+        .printer {
+            background: linear-gradient(#3a3a3f, #2a2a2e); border-radius: 1rem 1rem .4rem .4rem; padding: .9rem 1.2rem 1.4rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08); position: relative;
         }
+        .printer .slot { height: 8px; background: #0d0d0f; border-radius: 4px; margin-top: .8rem; box-shadow: inset 0 2px 3px rgba(0,0,0,.8); }
+        .printer .led { width: .55rem; height: .55rem; border-radius: 999px; background: #3ddc84; box-shadow: 0 0 8px #3ddc84; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: .25; } }
+        .feed { width: 78%; margin: -4px auto 0; height: 0; overflow: hidden; background: var(--paper); animation: feed 2.4s ease-in-out infinite; }
+        .feed .ln { height: 6px; background: #e3ded1; margin: 10px 14px 0; border-radius: 3px; }
+        @keyframes feed { 0% { height: 0; } 70% { height: 90px; } 100% { height: 90px; opacity: 0; } }
 
-        .upload-area.dragover {
-            border-color: #e94560;
-            background: rgba(233, 69, 96, 0.2);
-            transform: scale(1.02);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(233, 69, 96, 0.4);
-        }
-
-        .btn-primary:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(15, 52, 96, 0.4);
-        }
-
-        .modal-backdrop {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-        }
-
-        .modal-content {
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9) translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .result-card {
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
-        }
-
-        .result-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        }
-
-        .loading-dots::after {
-            content: '';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-
-        .copy-btn {
-            transition: all 0.2s ease;
+        /* 收據 */
+        .receipt { font-size: .9rem; }
+        .receipt .hdr { text-align: center; font-family: var(--mono); }
+        .receipt .row { display: flex; justify-content: space-between; gap: .5rem; font-family: var(--mono); font-size: .8rem; color: var(--ink-2); }
+        .receipt .body { white-space: pre-wrap; word-break: break-word; line-height: 1.85; font-size: .97rem; color: var(--ink); }
+        .barcode { height: 34px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 12px); opacity: .85; }
+        .print-in { animation: printIn .9s cubic-bezier(.2,.7,.2,1) both; }
+        @keyframes printIn { from { clip-path: inset(0 0 100% 0); transform: translateY(-14px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+        .ver-btn { width: 1.6rem; height: 1.6rem; border-radius: .3rem; display: inline-flex; align-items: center; justify-content: center; }
+        .ver-btn:hover:not(:disabled) { background: rgba(0,0,0,0.06); }
+        .ver-btn:disabled { opacity: .25; }
+        .stamp {
+            display: inline-block; border: 2px solid var(--stamp); color: var(--stamp); font-family: var(--mono); font-weight: 700;
+            font-size: .72rem; padding: .05rem .4rem; border-radius: .25rem; transform: rotate(-6deg); letter-spacing: .05em;
         }
 
-        .copy-btn:hover {
-            transform: scale(1.05);
+        /* 聊天室 */
+        .chat { background: #2a2a2f; border-radius: .9rem; padding: .8rem; margin-top: .9rem; border: 1px solid rgba(255,255,255,0.07); }
+        .chat-head { display: flex; align-items: center; gap: .5rem; color: #e9e6f5; font-size: .8rem; margin-bottom: .6rem; }
+        .avatar { width: 1.6rem; height: 1.6rem; border-radius: 999px; background: var(--chat); color: #fff; font-weight: 900; font-size: .75rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .bubble { font-size: .83rem; line-height: 1.55; padding: .45rem .7rem; max-width: 85%; word-break: break-word; }
+        .bubble.me { align-self: flex-end; background: var(--chat); color: #fff; border-radius: .9rem .9rem .25rem .9rem; }
+        .bubble.bot { align-self: flex-start; background: #fff; color: #2c2350; border-radius: .9rem .9rem .9rem .25rem; }
+        .bubble.bot button { color: var(--chat); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+        .quick { display: flex; gap: .35rem; overflow-x: auto; padding-bottom: .2rem; scrollbar-width: none; }
+        .quick::-webkit-scrollbar { display: none; }
+        .quick button {
+            flex-shrink: 0; font-size: .75rem; padding: .3rem .7rem; border-radius: 999px; background: rgba(255,255,255,0.08);
+            color: #e2ddf7; border: 1px solid rgba(255,255,255,0.12); transition: background .12s;
         }
+        .quick button:hover:not(:disabled) { background: rgba(255,255,255,0.16); }
+        .chat-input { flex: 1; min-width: 0; background: #1d1d21; border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 999px; padding: .5rem .9rem; font-size: .85rem; outline: none; }
+        .chat-input:focus { border-color: var(--chat); }
+        .chat-send { width: 2.2rem; height: 2.2rem; border-radius: 999px; background: var(--chat); color: #fff; flex-shrink: 0; transition: opacity .15s; }
+        .chat-send:disabled { opacity: .4; }
+        .typing span { display: inline-block; width: .35rem; height: .35rem; border-radius: 999px; background: #8f84b8; margin: 0 1px; animation: typing 1s infinite; }
+        .typing span:nth-child(2) { animation-delay: .15s; } .typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes typing { 0%, 60%, 100% { transform: none; opacity: .5; } 30% { transform: translateY(-3px); opacity: 1; } }
 
-        .toast {
-            animation: toastSlideIn 0.3s ease-out;
-        }
+        /* 主廚筆記 */
+        .note { background: var(--note); color: #3d3500; padding: 1rem 1.1rem; box-shadow: 0 10px 20px rgba(0,0,0,.35); position: relative; transform: rotate(-.6deg); }
+        .note::before { content: ''; position: absolute; top: -9px; left: 50%; width: 80px; height: 20px; margin-left: -40px; background: rgba(255,255,255,0.55); transform: rotate(2deg); }
+        .note-chip { font-size: .75rem; padding: .15rem .55rem; border-radius: .25rem; background: rgba(0,0,0,0.07); }
 
-        @keyframes toastSlideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
+        /* 對話框 */
+        .modal-backdrop { background: rgba(8, 8, 10, 0.72); backdrop-filter: blur(5px); }
+        .modal-in { animation: modalIn .25s ease-out; }
+        @keyframes modalIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+        .model-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .3rem; cursor: pointer; border-radius: .3rem; }
+        .model-row:hover { background: rgba(0,0,0,0.04); }
 
-        /* 風格選擇器 */
-        .style-chip {
-            transition: all 0.2s ease;
-            cursor: pointer;
-            user-select: none;
-            flex-shrink: 0;
-        }
+        /* Toast */
+        #toast { transition: opacity .2s, transform .2s; }
+        #toast.hide { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
-        @media (max-width: 640px) {
-            .style-chip {
-                padding: 0.5rem 0.75rem;
-                font-size: 0.8rem;
-            }
-            .style-chip .style-emoji {
-                font-size: 1rem;
-            }
-        }
-
-        .style-chip:hover {
-            transform: translateY(-2px);
-        }
-
-        .style-chip.selected {
-            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
-        }
-
-        .style-chip.selected .style-emoji {
-            transform: scale(1.2);
-        }
-
-        /* 店家資訊卡片 */
-        .store-info-card {
-            background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 217, 61, 0.1) 100%);
-            border: 1px solid rgba(233, 69, 96, 0.3);
-        }
-
-        /* 搜尋按鈕動畫 */
-        .search-btn {
-            transition: all 0.3s ease;
-        }
-
-        .search-btn:hover:not(:disabled) {
-            background: #e94560;
-        }
-
-        .search-btn.loading {
-            animation: searchPulse 1s ease-in-out infinite;
-        }
-
-        @keyframes searchPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* 標籤樣式 */
-        .info-tag {
-            background: rgba(233, 69, 96, 0.1);
-            color: #e94560;
-        }
-
-        /* 滾動條樣式 */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(233, 69, 96, 0.5);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(233, 69, 96, 0.7);
-        }
-
-        /* 風格標籤顏色 */
-        .style-badge {
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 9999px;
-        }
-        
-        /* 文字截斷 */
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(214, 69, 47, 0.5); border-radius: 4px; }
+        kbd { font-family: var(--mono); font-size: .7rem; padding: .05rem .35rem; border-radius: .3rem; border: 1px solid rgba(255,255,255,.35); }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+        @media (max-width: 640px) { .paper { padding-left: 1.1rem; padding-right: 1.1rem; } }
     </style>
 </head>
-<body class="min-h-screen py-4 sm:py-8 px-3 sm:px-4">
-    
-    <!-- API Key 模態視窗 -->
-    <div id="key-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden">
-        <div class="modal-content glass-effect rounded-3xl w-full max-w-md mx-4 p-8 shadow-2xl">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 accent-gradient rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg mx-auto mb-4">
-                    <i class="fas fa-key"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">設定 API Key</h2>
-                <p class="text-sm text-gray-600">請輸入您的 Google Gemini API Key</p>
-                <p class="text-xs text-gray-500 mt-2">
-                    <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-pink-600 hover:underline">
-                        還沒有 API Key？點此取得
-                    </a>
-                </p>
-            </div>
-            
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-lock mr-2"></i>API Key
-                </label>
-                <input 
-                    type="password" 
-                    id="api-key-input" 
-                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition text-gray-800 font-mono text-sm"
-                    placeholder="輸入您的 Gemini API Key..."
-                    autocomplete="off"
-                >
-                <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-shield-alt mr-1"></i>您的 API Key 僅儲存在本地瀏覽器，不會上傳到伺服器
-                </p>
-            </div>
-            
-            <div class="flex gap-3">
-                <button 
-                    onclick="saveKey()" 
-                    class="flex-1 btn-primary text-white py-3 rounded-xl font-semibold shadow-lg"
-                >
-                    <i class="fas fa-check mr-2"></i>儲存
-                </button>
-                <button 
-                    onclick="closeKeyModal()" 
-                    class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition"
-                >
-                    取消
-                </button>
-            </div>
-        </div>
-    </div>
+<body class="py-6 sm:py-8 px-4">
 
-    <!-- 主容器 -->
-    <div class="max-w-4xl mx-auto">
-        
-        <!-- 標題區 -->
-        <header class="text-center mb-6 sm:mb-8 animate-fade-up">
-            <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 accent-gradient rounded-2xl sm:rounded-3xl shadow-xl mb-4 sm:mb-6 rotate-3 hover:rotate-6 transition-transform">
-                <i class="fas fa-magic text-3xl sm:text-4xl text-white"></i>
-            </div>
-            <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-3 px-2">
-                AI 社群貼文產生器
-            </h1>
-            <p class="text-white/80 text-sm sm:text-lg md:text-xl px-2">
-                智慧搜尋店家資訊，生成多樣化真實貼文
-            </p>
-            <div class="mt-3 sm:mt-4 flex items-center justify-center gap-2 sm:gap-4 text-white/70 text-xs sm:text-sm flex-wrap px-2">
-                <span><i class="fas fa-robot mr-1"></i>Gemini AI</span>
-                <span><i class="fas fa-search mr-1"></i>智慧搜尋</span>
-                <span><i class="fas fa-palette mr-1"></i>多風格</span>
-            </div>
-        </header>
-
-        <!-- 主要內容區 -->
-        <div class="glass-effect rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl mb-6 animate-fade-up" style="animation-delay: 0.1s">
-            
-            <!-- 圖片上傳區 -->
-            <label for="file-upload" class="cursor-pointer block mb-6">
-                <div id="upload-box" class="upload-area rounded-xl sm:rounded-2xl p-4 sm:p-8 text-center relative overflow-hidden min-h-[200px] sm:min-h-[280px] flex flex-col justify-center items-center">
-                    <img id="preview-img" class="hidden max-h-full max-w-full object-contain rounded-xl shadow-lg">
-                    <div id="upload-placeholder" class="text-gray-600">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 accent-gradient rounded-2xl flex items-center justify-center mb-3 sm:mb-4 mx-auto shadow-lg">
-                            <i class="fas fa-cloud-upload-alt text-3xl sm:text-4xl text-white"></i>
-                        </div>
-                        <p class="text-base sm:text-lg font-semibold mb-2">點擊或拖放上傳照片</p>
-                        <p class="text-xs sm:text-sm text-gray-500">支援 JPG、PNG、GIF、WebP（最大 10MB）</p>
-                    </div>
-                </div>
-            </label>
-            <input id="file-upload" type="file" class="hidden" accept="image/*" onchange="previewImage(event)">
-            
-            <!-- 店家/景點搜尋區 -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-search-location mr-2 text-pink-600"></i>
-                    店家或景點名稱（選填，自動搜尋網路資訊）
-                </label>
-                
-                <!-- 類型切換 -->
-                <div class="flex gap-2 mb-3">
-                    <button 
-                        id="type-store-btn"
-                        onclick="setPlaceType('store')"
-                        class="place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-pink-600 text-white"
-                    >
-                        <i class="fas fa-store"></i>
-                        <span>店家/餐廳</span>
-                    </button>
-                    <button 
-                        id="type-attraction-btn"
-                        onclick="setPlaceType('attraction')"
-                        class="place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    >
-                        <i class="fas fa-mountain"></i>
-                        <span>景點/旅遊</span>
-                    </button>
-                </div>
-                
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <div class="flex gap-2 flex-1">
-                        <input 
-                            type="text" 
-                            id="place-name" 
-                            class="flex-1 min-w-0 border-2 border-gray-200 rounded-xl p-3 sm:p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition text-sm sm:text-base"
-                            placeholder="店家或景點名稱..."
-                        >
-                        <input 
-                            type="text" 
-                            id="place-location" 
-                            class="w-20 sm:w-28 border-2 border-gray-200 rounded-xl p-3 sm:p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-white text-gray-800 placeholder-gray-400 transition text-sm sm:text-base"
-                            placeholder="地區"
-                        >
-                    </div>
-                    <button 
-                        id="search-place-btn"
-                        onclick="searchPlace()" 
-                        class="search-btn px-4 sm:px-6 py-3 sm:py-4 bg-gray-800 text-white rounded-xl font-semibold hover:bg-pink-600 transition flex items-center justify-center gap-2 shrink-0"
-                    >
-                        <i class="fas fa-search"></i>
-                        <span>搜尋</span>
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>輸入店家或景點名稱後點擊搜尋，AI 會自動查詢相關資訊讓貼文更真實
-                </p>
-            </div>
-
-            <!-- 店家/景點資訊顯示區 -->
-            <div id="place-info-container" class="hidden mb-6">
-                <div class="store-info-card rounded-2xl p-5">
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-center gap-3">
-                            <div id="place-icon" class="w-10 h-10 accent-gradient rounded-xl flex items-center justify-center text-white">
-                                <i class="fas fa-store"></i>
-                            </div>
-                            <div>
-                                <h4 id="place-display-name" class="font-bold text-gray-800">名稱</h4>
-                                <p id="place-display-type" class="text-sm text-gray-600"></p>
-                            </div>
-                        </div>
-                        <button onclick="clearPlaceInfo()" class="text-gray-400 hover:text-red-500 transition">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div id="place-details" class="space-y-2 text-sm text-gray-700">
-                        <!-- 動態填充 -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 描述輸入區 -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-comment-dots mr-2 text-pink-600"></i>
-                    這張照片想表達什麼？（簡短描述）
-                </label>
-                <textarea 
-                    id="user-desc" 
-                    rows="3" 
-                    class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none resize-none bg-white text-gray-800 placeholder-gray-400 transition"
-                    placeholder="例如：今天跟好久不見的朋友去吃早午餐，超開心！或是：終於吃到夢寐以求的甜點..."
-                ></textarea>
-            </div>
-
-            <!-- 星級評分區 -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-star mr-2 text-pink-600"></i>
-                    整體評價星級（選填，影響貼文語調）
-                </label>
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div id="star-rating" class="flex gap-1 items-center">
-                        <button type="button" onclick="setRating(1)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="1">
-                            <i class="far fa-star text-gray-300"></i>
-                        </button>
-                        <button type="button" onclick="setRating(2)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="2">
-                            <i class="far fa-star text-gray-300"></i>
-                        </button>
-                        <button type="button" onclick="setRating(3)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="3">
-                            <i class="far fa-star text-gray-300"></i>
-                        </button>
-                        <button type="button" onclick="setRating(4)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="4">
-                            <i class="far fa-star text-gray-300"></i>
-                        </button>
-                        <button type="button" onclick="setRating(5)" class="star-btn text-2xl sm:text-3xl transition-transform hover:scale-110" data-star="5">
-                            <i class="far fa-star text-gray-300"></i>
-                        </button>
-                        <button type="button" id="clear-rating-btn" onclick="clearRating()" class="ml-2 text-xs text-gray-400 hover:text-red-500 transition hidden">
-                            <i class="fas fa-times"></i> 清除
-                        </button>
-                    </div>
-                    <span id="rating-text" class="text-sm text-gray-500">可選，不影響生成</span>
-                </div>
-                <p class="mt-2 text-xs text-gray-400">
-                    <i class="fas fa-info-circle mr-1"></i>點擊星星評分，再點一次可取消。1星=失望、3星=普通、5星=超推
-                </p>
-            </div>
-
-            <!-- 風格選擇區 -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-palette mr-2 text-pink-600"></i>
-                    選擇貼文風格（選擇 3-5 種）
-                </label>
-                <div id="style-chips" class="flex flex-wrap gap-2">
-                    <!-- 動態生成 -->
-                </div>
-                <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-lightbulb mr-1"></i>選擇不同風格，AI 會為每種風格生成獨特的貼文
-                </p>
-            </div>
-
-            <!-- 生成按鈕 -->
-            <button 
-                id="generate-btn" 
-                onclick="generateCaption()" 
-                class="w-full btn-primary text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3"
-                disabled
-            >
-                <i class="fas fa-magic"></i>
-                <span>✨ 生成多樣化貼文</span>
+    <!-- 頂部 -->
+    <nav class="max-w-5xl mx-auto flex items-center justify-between gap-3 mb-8">
+        <div class="sign text-sm sm:text-base font-bold"><span class="lamp">●</span> 貼文廚房 <span class="hidden sm:inline opacity-60">POST KITCHEN</span></div>
+        <div class="flex items-center gap-2">
+            <button id="history-btn" onclick="showHistory()" class="pill hidden" title="訂單紀錄">
+                <i class="fas fa-receipt"></i><span id="history-count">0</span>
             </button>
-
-            <!-- API Key 管理按鈕 -->
-            <div class="mt-4 text-center">
-                <button 
-                    onclick="showKeyModal()" 
-                    class="text-sm text-gray-600 hover:text-pink-600 transition flex items-center gap-2 mx-auto"
-                >
-                    <i class="fas fa-cog"></i>
-                    <span>管理 API Key</span>
-                </button>
-            </div>
+            <button onclick="showKeyModal()" class="pill" title="設定 Claude API Key 與模型">
+                <span id="key-dot" class="dot bg-red-400"></span>
+                <span id="key-status">未設定 API Key</span>
+                <i class="fas fa-gear text-xs opacity-70"></i>
+            </button>
         </div>
+    </nav>
 
-        <!-- 載入中 -->
-        <div id="loading" class="hidden glass-effect rounded-3xl p-8 text-center shadow-xl animate-fade-up">
-            <div class="w-20 h-20 accent-gradient rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
-                <i class="fas fa-robot text-3xl text-white"></i>
+    <!-- 點單表 -->
+    <main class="max-w-xl mx-auto paper-wrap mb-10">
+        <div class="paper">
+            <div class="text-center">
+                <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)]">ORDER · 點單</p>
+                <h1 class="text-2xl sm:text-3xl font-black mt-1">今天想發什麼？</h1>
+                <p class="text-sm text-[color:var(--ink-2)] mt-1">照片交給廚房，Claude 幫你出單貼文</p>
             </div>
-            <p class="text-lg font-semibold text-gray-700 mb-2">AI 正在為您創作多樣化貼文</p>
-            <p class="text-sm text-gray-500 loading-dots">請稍候</p>
-        </div>
+            <hr class="rule-double">
 
-        <!-- 結果區 -->
-        <div id="result-area" class="hidden animate-fade-up" style="animation-delay: 0.2s">
-            <div class="glass-effect rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 accent-gradient rounded-xl flex items-center justify-center text-white shrink-0">
-                            <i class="fas fa-sparkles text-sm sm:text-base"></i>
-                        </div>
-                        <span>為您生成的貼文</span>
-                    </h3>
-                    <button 
-                        onclick="generateCaption()" 
-                        class="btn-secondary text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
-                    >
-                        <i class="fas fa-sync-alt"></i>
-                        重新生成
+            <!-- 01 照片 -->
+            <section>
+                <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">食材（照片）</span><span class="sec-hint">最多 5 張 · <span id="photo-count">0</span>/5</span></div>
+                <div id="upload-box" class="drop p-3">
+                    <button type="button" id="upload-placeholder" onclick="openPicker()" class="w-full min-h-[150px] flex flex-col items-center justify-center text-[color:var(--ink-2)]">
+                        <i class="fas fa-camera-retro text-3xl mb-2"></i>
+                        <span class="font-bold text-[color:var(--ink)]">點這裡選照片，或拖放進來</span>
+                        <span class="text-xs mt-1">可一次選多張，也能 Ctrl+V 貼上；會自動轉正並調到最適合辨識的尺寸</span>
                     </button>
+                    <div id="photo-grid" class="hidden grid grid-cols-3 sm:grid-cols-4 gap-3 p-1"></div>
                 </div>
-                <div id="captions-container" class="space-y-4"></div>
+                <input id="file-upload" type="file" class="hidden" multiple accept="image/jpeg,image/png,image/gif,image/webp" onchange="addImages(this.files); this.value='';">
+            </section>
+            <hr class="rule">
+
+            <!-- 02 描述 -->
+            <section>
+                <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">備註（想表達什麼）</span><span class="sec-hint">必填</span></div>
+                <textarea id="user-desc" rows="3" maxlength="1000" class="field" placeholder="今天跟好久不見的朋友去吃早午餐，超開心！"></textarea>
+                <div class="flex justify-between mt-1 text-xs text-[color:var(--ink-3)]"><span>寫越具體，貼文越像你</span><span id="desc-count" class="mono">0/1000</span></div>
+            </section>
+            <hr class="rule">
+
+            <!-- 03 店家 -->
+            <section>
+                <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">加點：店家／景點資訊</span><span class="sec-hint">選填，會上網查</span></div>
+                <div class="seg mb-3" role="tablist">
+                    <button id="type-store-btn" type="button" onclick="setPlaceType('store')" class="active"><i class="fas fa-store mr-1"></i>店家</button>
+                    <button id="type-attraction-btn" type="button" onclick="setPlaceType('attraction')"><i class="fas fa-mountain-sun mr-1"></i>景點</button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+                    <input type="text" id="place-name" class="field flex-1 min-w-0" placeholder="店家名稱">
+                    <div class="flex gap-2 items-end">
+                        <input type="text" id="place-location" class="field sm:w-28 flex-1" placeholder="地區">
+                        <button id="search-place-btn" type="button" onclick="searchPlace()" class="btn-line px-4 py-2 text-sm shrink-0"><i class="fas fa-magnifying-glass mr-1"></i>查詢</button>
+                    </div>
+                </div>
+                <div id="place-info-container" class="hidden mt-3 border-l-4 border-[color:var(--stamp)] bg-[color:var(--paper-2)] p-3 rounded-r">
+                    <div class="flex items-start justify-between gap-3 mb-1">
+                        <div class="min-w-0">
+                            <p class="font-black truncate"><i id="place-icon" class="fas fa-store mr-1 text-[color:var(--stamp)]"></i><span id="place-display-name"></span></p>
+                            <p id="place-display-type" class="text-xs text-[color:var(--ink-3)]"></p>
+                        </div>
+                        <button type="button" onclick="clearPlaceInfo()" class="text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] w-7 h-7" title="移除店家資訊"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <div id="place-details" class="space-y-1 text-sm text-[color:var(--ink-2)]"></div>
+                </div>
+            </section>
+            <hr class="rule">
+
+            <!-- 04 評分 -->
+            <section>
+                <div class="sec-head"><span class="sec-no">04</span><span class="sec-title">評分</span><span class="sec-hint">選填，影響語調</span></div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <div id="star-rating" class="flex gap-1" role="radiogroup" aria-label="星級評分"></div>
+                    <span id="rating-text" class="text-sm text-[color:var(--ink-2)]"></span>
+                </div>
+            </section>
+            <hr class="rule">
+
+            <!-- 05 風格 -->
+            <section>
+                <div class="sec-head"><span class="sec-no">05</span><span class="sec-title">品項（貼文風格）</span><span class="sec-hint">選 3–5 道 · <span id="style-count">3</span>/5</span></div>
+                <div id="style-chips" class="grid sm:grid-cols-2 gap-x-6"></div>
+            </section>
+            <hr class="rule-double">
+
+            <div class="flex items-center justify-between mono text-sm mb-3">
+                <span>小計</span><span id="order-summary">3 道貼文</span>
+            </div>
+            <button id="generate-btn" onclick="generateCaption()" class="btn-ink w-full py-4 text-lg flex items-center justify-center gap-3" disabled>
+                <span id="generate-label">送出點單</span><i class="fas fa-arrow-right"></i>
+            </button>
+            <p id="generate-hint" class="text-center text-xs text-[color:var(--ink-3)] mt-2"></p>
+        </div>
+    </main>
+
+    <!-- 出單中 -->
+    <section id="loading" class="hidden max-w-sm mx-auto mb-10">
+        <div class="printer">
+            <div class="flex items-center justify-between">
+                <span class="mono text-xs text-white/70 tracking-widest">PRINTING</span>
+                <span class="led"></span>
+            </div>
+            <p class="text-white font-bold mt-2">廚房正在出單…</p>
+            <p id="loading-sub" class="text-xs text-white/60 mt-0.5">通常需要 10–30 秒</p>
+            <div class="slot"></div>
+        </div>
+        <div class="feed"><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:55%"></div></div>
+    </section>
+
+    <!-- 出餐區 -->
+    <section id="result-area" class="hidden max-w-5xl mx-auto mb-10">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+                <p class="mono text-xs tracking-[.3em] text-white/50">PICK UP · 出餐區</p>
+                <h2 class="text-2xl font-black text-white mt-1">你的貼文好了</h2>
+                <p id="result-meta" class="text-xs text-white/50 mt-1 mono"></p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="copyAll()" class="pill"><i class="far fa-copy"></i>全部複製</button>
+                <button id="regen-btn" onclick="generateCaption()" class="pill"><i class="fas fa-rotate"></i>整單重做</button>
             </div>
         </div>
+        <div id="analysis-container" class="hidden mb-8 max-w-2xl"></div>
+        <div id="captions-container" class="grid grid-cols-1 gap-8 md:grid-cols-2 items-start"></div>
+    </section>
 
-    </div>
+    <footer class="text-center text-white/35 text-xs pb-4 mono">
+        由 Claude 料理 · 發布前請自行確認內容 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 送出點單
+    </footer>
 
-    <!-- 歷史記錄模態視窗 -->
-    <div id="history-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center hidden overflow-y-auto py-4">
-        <div class="modal-content glass-effect rounded-3xl w-full max-w-2xl mx-4 p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-history text-pink-600"></i>
-                    歷史記錄
-                </h2>
-                <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div id="history-container" class="space-y-4">
-                <!-- 動態填充 -->
-            </div>
-            
-            <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                <button 
-                    onclick="closeHistoryModal()" 
-                    class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition"
-                >
-                    關閉
-                </button>
-                <button 
-                    onclick="clearHistory()" 
-                    class="py-3 px-6 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition flex items-center justify-center gap-2"
-                >
-                    <i class="fas fa-trash"></i>
-                    清除全部
-                </button>
+    <!-- 設定 -->
+    <div id="key-modal" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto" onclick="if(event.target===this) closeKeyModal()">
+        <div class="modal-in paper-wrap w-full max-w-md my-6" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+            <div class="paper">
+                <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)] text-center">SETTINGS</p>
+                <h2 id="key-modal-title" class="text-xl font-black text-center mt-1">廚房設定</h2>
+                <hr class="rule-double">
+
+                <label for="api-key-input" class="sec-title block mb-1">Claude API Key</label>
+                <div class="relative">
+                    <input type="password" id="api-key-input" class="field mono pr-10" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="顯示/隱藏"><i id="key-eye" class="fas fa-eye"></i></button>
+                </div>
+                <p id="key-current" class="text-xs text-[color:var(--ink-3)] mt-2 mono hidden"></p>
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="inline-block text-xs mt-2 font-bold text-[color:var(--stamp)] hover:underline">到 Anthropic Console 取得 API Key <i class="fas fa-arrow-up-right-from-square text-[10px]"></i></a>
+
+                <hr class="rule">
+                <p class="sec-title mb-1">主廚（模型）</p>
+                <div id="model-options"></div>
+
+                <hr class="rule">
+                <p class="text-xs text-[color:var(--ink-2)] leading-relaxed"><i class="fas fa-shield-halved mr-1"></i>Key 只存在這台裝置的瀏覽器。每次出單時隨請求送到本站伺服器、再轉給 Anthropic，伺服器不保存；用量計入你自己的 Anthropic 帳戶。</p>
+
+                <div class="flex gap-2 mt-5">
+                    <button onclick="clearKey()" id="clear-key-btn" class="btn-line px-3 py-2.5 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)] hidden">刪除 Key</button>
+                    <div class="flex-1"></div>
+                    <button onclick="closeKeyModal()" class="btn-line px-4 py-2.5 text-sm">取消</button>
+                    <button onclick="saveKey()" class="btn-ink px-5 py-2.5 text-sm">儲存</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast 通知 -->
-    <div id="toast" class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm glass-effect rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-2xl hidden toast z-50">
-        <div class="flex items-center gap-2 sm:gap-3">
-            <i id="toast-icon" class="fas fa-check-circle text-green-500 text-lg sm:text-xl shrink-0"></i>
-            <span id="toast-message" class="text-gray-800 font-semibold text-sm sm:text-base"></span>
+    <!-- 訂單紀錄 -->
+    <div id="history-modal" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto" onclick="if(event.target===this) closeHistoryModal()">
+        <div class="modal-in paper-wrap w-full max-w-lg my-6" role="dialog" aria-modal="true" aria-labelledby="history-title">
+            <div class="paper">
+                <div class="flex items-center justify-between">
+                    <h2 id="history-title" class="text-xl font-black"><i class="fas fa-receipt mr-2 text-[color:var(--stamp)]"></i>訂單紀錄</h2>
+                    <button onclick="closeHistoryModal()" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><i class="fas fa-xmark text-lg"></i></button>
+                </div>
+                <hr class="rule-double">
+                <div id="history-container" class="max-h-[60vh] overflow-y-auto -mx-1 px-1"></div>
+                <hr class="rule">
+                <div class="flex justify-end gap-2">
+                    <button onclick="clearHistory()" class="btn-line px-3 py-2 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]"><i class="fas fa-trash mr-1"></i>清除全部</button>
+                    <button onclick="closeHistoryModal()" class="btn-ink px-4 py-2 text-sm">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hide fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-[60] rounded-lg px-4 py-3 bg-[color:var(--paper)] shadow-2xl border-l-4 border-[color:var(--ink)]" role="status" aria-live="polite">
+        <div class="flex items-center gap-3">
+            <i id="toast-icon" class="fas fa-circle-check text-emerald-600 text-lg shrink-0"></i>
+            <span id="toast-message" class="font-bold text-sm"></span>
         </div>
     </div>
 
     <script>
-        let apiKey = localStorage.getItem('gemini_api_key');
-        let selectedFile = null;
-        let currentPlaceInfo = null;
-        let currentPlaceType = 'store'; // 'store' 或 'attraction'
-        let selectedStyles = ['humorous', 'warm', 'foodie'];
-        let currentRating = 0; // 0 表示未選擇
-        let captionsHistory = []; // 貼文歷史記錄
-        
-        // 星級對應的文字描述
-        const RATING_TEXTS = {
-            0: '可選，不影響生成',
-            1: '😞 失望，不推薦',
-            2: '😕 普通偏下，有待加強',
-            3: '😐 還可以，中規中矩',
-            4: '😊 不錯，值得一試',
-            5: '🤩 超讚，大力推薦！'
+        // ===== 常數 =====
+        const MODELS = [
+            { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', desc: '速度與品質平衡，推薦' },
+            { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', desc: '文筆最好，費用較高' },
+            { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', desc: '最快、最便宜' }
+        ];
+        const DEFAULT_MODEL = 'claude-sonnet-5-5';
+
+        const STYLES = {
+            humorous: { name: '幽默搞笑', emoji: '😂', tag: '招牌' },
+            warm: { name: '溫馨感性', emoji: '🥰', tag: '人氣' },
+            foodie: { name: '美食專家', emoji: '😋', tag: '主廚推薦' },
+            literary: { name: '文青詩意', emoji: '📖', tag: '季節限定' },
+            energetic: { name: '活力熱情', emoji: '🎉', tag: '加辣' },
+            minimalist: { name: '簡約俐落', emoji: '✓', tag: '小份' },
+            storytelling: { name: '故事敘述', emoji: '📝', tag: '慢燉' },
+            trendy: { name: '潮流網紅', emoji: '💅', tag: '新品' }
         };
-        
-        // ===== 暫存功能 =====
+
+        const QUICK_REFINES = ['再好笑一點', '短一點', '長一點', '更口語', '多點 Emoji', '少點 Emoji', '加 Hashtag', '更有質感', '加個問句結尾'];
+
+        const RATING_TEXTS = { 1: '😞 失望', 2: '😕 普通偏下', 3: '😐 中規中矩', 4: '😊 不錯', 5: '🤩 超讚大推' };
+
         const STORAGE_KEYS = {
+            apiKey: 'claude_api_key',
+            model: 'claude_model',
             description: 'post_creator_description',
             styles: 'post_creator_styles',
             rating: 'post_creator_rating',
@@ -629,840 +448,815 @@
             placeType: 'post_creator_place_type',
             placeName: 'post_creator_place_name',
             placeLocation: 'post_creator_place_location',
-            history: 'post_creator_history'
+            history: 'post_creator_history',
+            orderNo: 'post_creator_order_no'
         };
-        
-        // 儲存到暫存
+
+        const MAX_PHOTOS = 5;
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const MAX_EDGE = 2576;
+        const MAX_BYTES = 3.5 * 1024 * 1024;
+
+        // ===== 狀態 =====
+        let apiKey = null;
+        let currentModel = DEFAULT_MODEL;
+        let pendingModel = DEFAULT_MODEL;
+        let selectedFiles = []; // [{ file, url }]
+        let currentPlaceInfo = null;
+        let currentPlaceType = 'store';
+        let selectedStyles = ['humorous', 'warm', 'foodie'];
+        let currentRating = 0;
+        let captionsHistory = [];
+        let isGenerating = false;
+        // 目前出餐區的訂單：{ historyId, orderNo, model, timestamp, analysis, context, items: [{ style, versions: [{ caption, instruction, reply }], idx, busy }] }
+        let currentOrder = null;
+
+        const $ = id => document.getElementById(id);
+
+        // ===== 儲存 =====
         function saveToStorage(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (e) {
-                console.warn('儲存暫存失敗:', e);
-            }
+            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.warn('儲存失敗:', e); }
         }
-        
-        // 從暫存讀取
         function loadFromStorage(key, defaultValue = null) {
             try {
                 const stored = localStorage.getItem(key);
                 return stored ? JSON.parse(stored) : defaultValue;
-            } catch (e) {
-                console.warn('讀取暫存失敗:', e);
-                return defaultValue;
-            }
+            } catch (e) { return defaultValue; }
         }
-        
-        // 儲存所有輸入狀態
+        function removeFromStorage(key) {
+            try { localStorage.removeItem(key); } catch (e) { /* 忽略 */ }
+        }
+
         function saveInputState() {
-            const desc = document.getElementById('user-desc').value;
-            const placeName = document.getElementById('place-name').value;
-            const placeLocation = document.getElementById('place-location').value;
-            
-            saveToStorage(STORAGE_KEYS.description, desc);
+            saveToStorage(STORAGE_KEYS.description, $('user-desc').value);
             saveToStorage(STORAGE_KEYS.styles, selectedStyles);
             saveToStorage(STORAGE_KEYS.rating, currentRating);
             saveToStorage(STORAGE_KEYS.placeType, currentPlaceType);
-            saveToStorage(STORAGE_KEYS.placeName, placeName);
-            saveToStorage(STORAGE_KEYS.placeLocation, placeLocation);
-            if (currentPlaceInfo) {
-                saveToStorage(STORAGE_KEYS.placeInfo, currentPlaceInfo);
-            }
+            saveToStorage(STORAGE_KEYS.placeName, $('place-name').value);
+            saveToStorage(STORAGE_KEYS.placeLocation, $('place-location').value);
+            if (currentPlaceInfo) saveToStorage(STORAGE_KEYS.placeInfo, currentPlaceInfo);
+            else removeFromStorage(STORAGE_KEYS.placeInfo);
         }
-        
-        // 恢復所有輸入狀態
+
         function restoreInputState() {
-            // 恢復描述
-            const savedDesc = loadFromStorage(STORAGE_KEYS.description, '');
-            if (savedDesc) {
-                document.getElementById('user-desc').value = savedDesc;
-            }
-            
-            // 恢復風格選擇
+            apiKey = loadFromStorage(STORAGE_KEYS.apiKey, null);
+            const savedModel = loadFromStorage(STORAGE_KEYS.model, DEFAULT_MODEL);
+            currentModel = MODELS.some(m => m.id === savedModel) ? savedModel : DEFAULT_MODEL;
+            removeFromStorage('gemini_api_key');
+
+            $('user-desc').value = loadFromStorage(STORAGE_KEYS.description, '') || '';
             const savedStyles = loadFromStorage(STORAGE_KEYS.styles);
-            if (savedStyles && Array.isArray(savedStyles) && savedStyles.length >= 3) {
-                selectedStyles = savedStyles;
+            if (Array.isArray(savedStyles)) {
+                const valid = savedStyles.filter(s => STYLES[s]).slice(0, 5);
+                if (valid.length >= 3) selectedStyles = valid;
             }
-            
-            // 恢復星級
-            const savedRating = loadFromStorage(STORAGE_KEYS.rating, 0);
-            currentRating = savedRating;
-            
-            // 恢復搜尋類型
-            const savedPlaceType = loadFromStorage(STORAGE_KEYS.placeType, 'store');
-            currentPlaceType = savedPlaceType;
-            setPlaceType(savedPlaceType);
-            
-            // 恢復店家/景點名稱
-            const savedPlaceName = loadFromStorage(STORAGE_KEYS.placeName, '');
-            const savedPlaceLocation = loadFromStorage(STORAGE_KEYS.placeLocation, '');
-            if (savedPlaceName) {
-                document.getElementById('place-name').value = savedPlaceName;
-            }
-            if (savedPlaceLocation) {
-                document.getElementById('place-location').value = savedPlaceLocation;
-            }
-            
-            // 恢復店家/景點資訊
+            const r = Number(loadFromStorage(STORAGE_KEYS.rating, 0));
+            currentRating = r >= 0 && r <= 5 ? r : 0;
+
+            setPlaceType(loadFromStorage(STORAGE_KEYS.placeType, 'store') === 'attraction' ? 'attraction' : 'store', false);
+            $('place-name').value = loadFromStorage(STORAGE_KEYS.placeName, '') || '';
+            $('place-location').value = loadFromStorage(STORAGE_KEYS.placeLocation, '') || '';
             const savedPlaceInfo = loadFromStorage(STORAGE_KEYS.placeInfo);
             if (savedPlaceInfo && savedPlaceInfo.found) {
                 currentPlaceInfo = savedPlaceInfo;
                 displayPlaceInfo(savedPlaceInfo);
             }
-            
-            // 恢復歷史記錄
-            captionsHistory = loadFromStorage(STORAGE_KEYS.history, []);
+            const h = loadFromStorage(STORAGE_KEYS.history, []);
+            captionsHistory = Array.isArray(h) ? h : [];
         }
-        
-        // 儲存生成結果到歷史
-        function saveToHistory(captions, description) {
-            const historyItem = {
-                id: Date.now(),
-                timestamp: new Date().toLocaleString('zh-TW'),
-                description: description,
-                placeInfo: currentPlaceInfo,
-                rating: currentRating,
-                captions: captions
-            };
-            
-            captionsHistory.unshift(historyItem); // 最新的放最前面
-            
-            // 只保留最近 10 筆
-            if (captionsHistory.length > 10) {
-                captionsHistory = captionsHistory.slice(0, 10);
-            }
-            
-            saveToStorage(STORAGE_KEYS.history, captionsHistory);
-        }
-        
-        // 清除暫存
-        function clearStorage() {
-            Object.values(STORAGE_KEYS).forEach(key => {
-                localStorage.removeItem(key);
-            });
-            showToast('已清除所有暫存資料', 'success');
-        }
-        
-        // 顯示歷史記錄
-        function showHistory() {
-            const modal = document.getElementById('history-modal');
-            const container = document.getElementById('history-container');
-            
-            if (captionsHistory.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-gray-500 py-8">
-                        <i class="fas fa-inbox text-4xl mb-3"></i>
-                        <p>尚無歷史記錄</p>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = captionsHistory.map((item, historyIndex) => `
-                    <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="text-sm text-gray-500">
-                                <i class="fas fa-clock mr-1"></i>${item.timestamp}
-                            </div>
-                            ${item.rating > 0 ? `<div class="text-yellow-500">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</div>` : ''}
-                        </div>
-                        <p class="text-gray-700 text-sm mb-3 line-clamp-2">
-                            <strong>描述：</strong>${escapeHtml(item.description)}
-                        </p>
-                        ${item.placeInfo && item.placeInfo.name ? `
-                            <p class="text-gray-600 text-xs mb-3">
-                                <i class="fas fa-map-marker-alt mr-1"></i>${item.placeInfo.name}
-                            </p>
-                        ` : ''}
-                        <div class="space-y-2">
-                            ${item.captions.slice(0, 2).map((cap, capIndex) => {
-                                const caption = typeof cap === 'string' ? cap : cap.caption;
-                                const style = typeof cap === 'string' ? '' : cap.style;
-                                return `
-                                    <div class="bg-white rounded-xl p-3 text-sm">
-                                        ${style ? `<span class="text-xs text-pink-600 font-medium">${style}</span>` : ''}
-                                        <p class="text-gray-700 line-clamp-2 mt-1">${escapeHtml(caption)}</p>
-                                        <button 
-                                            onclick="copyFromHistory(${historyIndex}, ${capIndex})"
-                                            class="mt-2 text-xs text-gray-500 hover:text-pink-600 transition"
-                                        >
-                                            <i class="far fa-copy mr-1"></i>複製
-                                        </button>
-                                    </div>
-                                `;
-                            }).join('')}
-                            ${item.captions.length > 2 ? `
-                                <button 
-                                    onclick="loadHistoryItem(${historyIndex})"
-                                    class="w-full py-2 text-sm text-pink-600 hover:bg-pink-50 rounded-lg transition"
-                                >
-                                    查看全部 ${item.captions.length} 則貼文
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            modal.classList.remove('hidden');
-        }
-        
-        // 關閉歷史記錄
-        function closeHistoryModal() {
-            document.getElementById('history-modal').classList.add('hidden');
-        }
-        
-        // 從歷史記錄複製
-        function copyFromHistory(historyIndex, captionIndex) {
-            const item = captionsHistory[historyIndex];
-            if (item && item.captions[captionIndex]) {
-                const caption = typeof item.captions[captionIndex] === 'string' 
-                    ? item.captions[captionIndex] 
-                    : item.captions[captionIndex].caption;
-                
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(caption).then(() => {
-                        showToast('已複製到剪貼簿', 'success');
-                    }).catch(() => {
-                        fallbackCopyText(caption);
-                    });
-                } else {
-                    fallbackCopyText(caption);
-                }
-            }
-        }
-        
-        // 備用複製（用於歷史記錄）
-        function fallbackCopyText(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                showToast('已複製到剪貼簿', 'success');
-            } catch (err) {
-                showToast('複製失敗', 'error');
-            }
-            document.body.removeChild(textarea);
-        }
-        
-        // 載入歷史記錄項目
-        function loadHistoryItem(historyIndex) {
-            const item = captionsHistory[historyIndex];
-            if (item) {
-                // 儲存貼文資料供複製使用
-                window.captionsData = item.captions.map(cap => 
-                    typeof cap === 'string' ? cap : cap.caption
-                );
-                
-                // 顯示結果
-                renderResult(item.captions);
-                closeHistoryModal();
-                
-                // 滾動到結果區
-                setTimeout(() => {
-                    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-            }
-        }
-        
-        // 清除歷史記錄
-        function clearHistory() {
-            if (confirm('確定要清除所有歷史記錄嗎？')) {
-                captionsHistory = [];
-                saveToStorage(STORAGE_KEYS.history, []);
-                closeHistoryModal();
-                
-                // 移除歷史記錄按鈕
-                const historyBtn = document.getElementById('history-btn');
-                if (historyBtn) {
-                    historyBtn.parentElement.remove();
-                }
-                
-                showToast('已清除所有歷史記錄', 'success');
-            }
-        }
-        
-        // 風格定義
-        const STYLES = {
-            humorous: { name: "幽默搞笑", emoji: "😂", color: "bg-yellow-100 text-yellow-800" },
-            warm: { name: "溫馨感性", emoji: "🥰", color: "bg-pink-100 text-pink-800" },
-            foodie: { name: "美食專家", emoji: "😋", color: "bg-orange-100 text-orange-800" },
-            literary: { name: "文青詩意", emoji: "📖", color: "bg-green-100 text-green-800" },
-            energetic: { name: "活力熱情", emoji: "🎉", color: "bg-red-100 text-red-800" },
-            minimalist: { name: "簡約俐落", emoji: "✓", color: "bg-gray-100 text-gray-800" },
-            storytelling: { name: "故事敘述", emoji: "📝", color: "bg-blue-100 text-blue-800" },
-            trendy: { name: "潮流網紅", emoji: "💅", color: "bg-purple-100 text-purple-800" }
-        };
 
-        // 初始化
+        // ===== 初始化 =====
         document.addEventListener('DOMContentLoaded', () => {
-            if (!apiKey) {
-                setTimeout(() => showKeyModal(), 300);
-            }
-            
-            // 恢復暫存狀態
             restoreInputState();
-            
+            renderStars();
             renderStyleChips();
-            updateRatingDisplay();
-            
-            // 如果有歷史記錄，顯示最近一筆
-            if (captionsHistory.length > 0) {
-                showHistoryButton();
-            }
-            
-            // 監聽輸入變化，自動儲存
-            document.getElementById('user-desc').addEventListener('input', debounce(saveInputState, 500));
-            document.getElementById('place-name').addEventListener('input', debounce(saveInputState, 500));
-            document.getElementById('place-location').addEventListener('input', debounce(saveInputState, 500));
-        });
-        
-        // 防抖函數
-        function debounce(func, wait) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        }
-        
-        // 顯示歷史記錄按鈕
-        function showHistoryButton() {
-            // 如果按鈕已存在則不重複添加
-            if (document.getElementById('history-btn')) return;
-            
-            const apiKeyBtn = document.querySelector('[onclick="showKeyModal()"]').parentElement;
-            const historyBtn = document.createElement('div');
-            historyBtn.className = 'mt-2 text-center';
-            historyBtn.innerHTML = `
-                <button 
-                    id="history-btn"
-                    onclick="showHistory()" 
-                    class="text-sm text-gray-600 hover:text-pink-600 transition flex items-center gap-2 mx-auto"
-                >
-                    <i class="fas fa-history"></i>
-                    <span>歷史記錄 (${captionsHistory.length})</span>
-                </button>
-            `;
-            apiKeyBtn.parentNode.insertBefore(historyBtn, apiKeyBtn.nextSibling);
-        }
-        
-        // 設定星級評分（點擊同一個星星可取消選擇）
-        function setRating(rating) {
-            // 如果點擊已選的星級，則取消選擇
-            if (currentRating === rating) {
-                currentRating = 0;
-            } else {
-                currentRating = rating;
-            }
-            updateRatingDisplay();
-            saveInputState(); // 自動儲存
-        }
-        
-        // 更新星級顯示
-        function updateRatingDisplay() {
-            const buttons = document.querySelectorAll('.star-btn');
-            const clearBtn = document.getElementById('clear-rating-btn');
-            
-            buttons.forEach((btn, index) => {
-                const starIcon = btn.querySelector('i');
-                if (index < currentRating) {
-                    starIcon.className = 'fas fa-star text-yellow-400';
-                } else {
-                    starIcon.className = 'far fa-star text-gray-300';
-                }
+            renderPhotos();
+            updateKeyStatus();
+            updateHistoryButton();
+            updateDescCount();
+            checkBtnState();
+            if (!apiKey) setTimeout(showKeyModal, 300);
+
+            const autosave = debounce(saveInputState, 400);
+            $('user-desc').addEventListener('input', () => { updateDescCount(); checkBtnState(); autosave(); });
+            $('place-name').addEventListener('input', autosave);
+            $('place-location').addEventListener('input', autosave);
+            ['place-name', 'place-location'].forEach(id => $(id).addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); searchPlace(); }
+            }));
+            $('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { closeKeyModal(); closeHistoryModal(); }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !$('generate-btn').disabled) generateCaption();
             });
-            
-            document.getElementById('rating-text').textContent = RATING_TEXTS[currentRating];
-            
-            // 顯示或隱藏清除按鈕
-            if (currentRating > 0) {
-                clearBtn.classList.remove('hidden');
+            document.addEventListener('paste', e => {
+                if (e.target && e.target.classList && e.target.classList.contains('chat-input')) return;
+                const images = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile());
+                if (images.length) addImages(images);
+            });
+            setupDragDrop();
+        });
+
+        function debounce(func, wait) {
+            let t;
+            return (...args) => { clearTimeout(t); t = setTimeout(() => func(...args), wait); };
+        }
+
+        function updateDescCount() { $('desc-count').textContent = `${$('user-desc').value.length}/1000`; }
+
+        // ===== API Key 與模型 =====
+        function maskKey(k) { return k.length > 16 ? `${k.slice(0, 10)}…${k.slice(-4)}` : '••••'; }
+
+        function updateKeyStatus() {
+            const model = MODELS.find(m => m.id === currentModel);
+            $('key-dot').className = `dot ${apiKey ? 'bg-emerald-400' : 'bg-red-400'}`;
+            $('key-status').textContent = apiKey ? (model ? model.label.replace('Claude ', '') : '已設定') : '未設定 API Key';
+        }
+
+        function renderModelOptions() {
+            $('model-options').innerHTML = MODELS.map(m => `
+                <div class="model-row" onclick="selectModel('${m.id}')" role="radio" aria-checked="${m.id === pendingModel}" tabindex="0">
+                    <span class="menu-item ${m.id === pendingModel ? 'selected' : ''} !p-0 !w-auto"><span class="box"><i class="fas fa-check"></i></span></span>
+                    <span class="font-bold text-sm">${m.label}</span>
+                    <span class="flex-1 border-b-2 border-dotted border-[color:var(--rule)] -translate-y-1"></span>
+                    <span class="text-xs text-[color:var(--ink-3)]">${m.desc}</span>
+                </div>`).join('');
+        }
+
+        function selectModel(id) { pendingModel = id; renderModelOptions(); }
+
+        function showKeyModal() {
+            pendingModel = currentModel;
+            renderModelOptions();
+            const input = $('api-key-input');
+            input.value = '';
+            input.type = 'password';
+            $('key-eye').className = 'fas fa-eye';
+            if (apiKey) {
+                input.placeholder = '留空則沿用目前的 Key';
+                $('key-current').textContent = `目前使用：${maskKey(apiKey)}`;
+                $('key-current').classList.remove('hidden');
+                $('clear-key-btn').classList.remove('hidden');
             } else {
-                clearBtn.classList.add('hidden');
+                input.placeholder = 'sk-ant-api03-...';
+                $('key-current').classList.add('hidden');
+                $('clear-key-btn').classList.add('hidden');
             }
-        }
-        
-        // 清除星級評分
-        function clearRating() {
-            currentRating = 0;
-            updateRatingDisplay();
+            $('key-modal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 50);
         }
 
-        // 渲染風格選擇器
+        function closeKeyModal() {
+            $('key-modal').classList.add('hidden');
+            $('api-key-input').value = '';
+        }
+
+        function toggleKeyVisibility() {
+            const input = $('api-key-input');
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            $('key-eye').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+        }
+
+        function saveKey() {
+            const val = $('api-key-input').value.trim();
+            if (!val && !apiKey) return showToast('請輸入 API Key', 'error');
+            if (val) {
+                if (!val.startsWith('sk-ant-')) return showToast('Claude API Key 通常以 sk-ant- 開頭，請確認', 'error');
+                apiKey = val;
+                saveToStorage(STORAGE_KEYS.apiKey, apiKey);
+            }
+            currentModel = pendingModel;
+            saveToStorage(STORAGE_KEYS.model, currentModel);
+            closeKeyModal();
+            updateKeyStatus();
+            checkBtnState();
+            showToast('設定已儲存', 'success');
+        }
+
+        function clearKey() {
+            if (!confirm('確定要從這台裝置刪除 API Key 嗎？')) return;
+            apiKey = null;
+            removeFromStorage(STORAGE_KEYS.apiKey);
+            closeKeyModal();
+            updateKeyStatus();
+            checkBtnState();
+            showToast('已刪除 API Key', 'info');
+        }
+
+        function apiHeaders(extra = {}) { return { 'x-api-key': apiKey, 'x-model': currentModel, ...extra }; }
+
+        // ===== 星級 =====
+        function renderStars() {
+            $('star-rating').innerHTML = [1, 2, 3, 4, 5].map(n => `
+                <button type="button" class="star-btn ${n <= currentRating ? 'on' : ''}" onclick="setRating(${n})" role="radio" aria-checked="${n === currentRating}" aria-label="${n} 星"><i class="fas fa-star"></i></button>`).join('');
+            $('rating-text').innerHTML = currentRating
+                ? `${RATING_TEXTS[currentRating]} <button type="button" onclick="setRating(0)" class="ml-1 text-xs text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] underline">清除</button>`
+                : '<span class="text-[color:var(--ink-3)]">未評分</span>';
+        }
+
+        function setRating(rating) {
+            currentRating = currentRating === rating ? 0 : rating;
+            renderStars();
+            saveInputState();
+        }
+
+        // ===== 風格（菜單品項） =====
         function renderStyleChips() {
-            const container = document.getElementById('style-chips');
-            container.innerHTML = Object.entries(STYLES).map(([key, style]) => `
-                <div 
-                    class="style-chip px-4 py-2 rounded-full border-2 border-gray-200 flex items-center gap-2 ${selectedStyles.includes(key) ? 'selected' : ''}"
-                    data-style="${key}"
-                    onclick="toggleStyle('${key}')"
-                >
-                    <span class="style-emoji text-lg">${style.emoji}</span>
-                    <span class="text-sm font-medium">${style.name}</span>
-                </div>
-            `).join('');
+            $('style-chips').innerHTML = Object.entries(STYLES).map(([key, s]) => {
+                const on = selectedStyles.includes(key);
+                return `
+                <button type="button" class="menu-item ${on ? 'selected' : ''}" onclick="toggleStyle('${key}')" aria-pressed="${on}">
+                    <span class="box"><i class="fas fa-check"></i></span>
+                    <span class="name">${s.name}</span><span>${s.emoji}</span>
+                    <span class="leader"></span>
+                    <span class="tag">${on ? '×1' : s.tag}</span>
+                </button>`;
+            }).join('');
+            $('style-count').textContent = selectedStyles.length;
+            $('order-summary').textContent = `${selectedStyles.length} 道貼文`;
         }
 
-        // 切換風格選擇
-        function toggleStyle(styleKey) {
-            const index = selectedStyles.indexOf(styleKey);
-            if (index > -1) {
-                if (selectedStyles.length > 3) {
-                    selectedStyles.splice(index, 1);
-                } else {
-                    showToast('至少需要選擇 3 種風格', 'error');
-                    return;
-                }
+        function toggleStyle(key) {
+            const i = selectedStyles.indexOf(key);
+            if (i > -1) {
+                if (selectedStyles.length <= 3) return showToast('至少要點 3 道', 'error');
+                selectedStyles.splice(i, 1);
             } else {
-                if (selectedStyles.length >= 5) {
-                    showToast('最多只能選擇 5 種風格', 'error');
-                    return;
-                }
-                selectedStyles.push(styleKey);
+                if (selectedStyles.length >= 5) return showToast('最多點 5 道', 'error');
+                selectedStyles.push(key);
             }
             renderStyleChips();
-            saveInputState(); // 自動儲存
+            checkBtnState();
+            saveInputState();
         }
 
-        // 顯示 API Key 模態
-        function showKeyModal() {
-            const modal = document.getElementById('key-modal');
-            const input = document.getElementById('api-key-input');
-            modal.classList.remove('hidden');
-            setTimeout(() => input.focus(), 100);
-            
-            if (apiKey) {
-                input.value = apiKey.substring(0, 8) + '...';
-                input.type = 'text';
+        // ===== 照片 =====
+        function openPicker() { $('file-upload').click(); }
+
+        function addImages(fileList) {
+            const files = [...(fileList || [])].filter(Boolean);
+            if (!files.length) return;
+            let skippedType = 0, skippedSize = 0, skippedMax = 0;
+            for (const file of files) {
+                if (!ALLOWED_TYPES.includes(file.type)) { skippedType++; continue; }
+                if (file.size > 10 * 1024 * 1024) { skippedSize++; continue; }
+                if (selectedFiles.length >= MAX_PHOTOS) { skippedMax++; continue; }
+                selectedFiles.push({ file, url: URL.createObjectURL(file) });
             }
+            const notes = [];
+            if (skippedType) notes.push(`${skippedType} 張格式不支援`);
+            if (skippedSize) notes.push(`${skippedSize} 張超過 10MB`);
+            if (skippedMax) notes.push(`超過 ${MAX_PHOTOS} 張，略過 ${skippedMax} 張`);
+            if (notes.length) showToast(notes.join('；'), 'error');
+            renderPhotos();
         }
 
-        // 關閉 API Key 模態
-        function closeKeyModal() {
-            document.getElementById('key-modal').classList.add('hidden');
-            document.getElementById('api-key-input').value = '';
-            document.getElementById('api-key-input').type = 'password';
+        function removePhoto(i) {
+            const [item] = selectedFiles.splice(i, 1);
+            if (item) URL.revokeObjectURL(item.url);
+            renderPhotos();
         }
 
-        // 儲存 API Key
-        function saveKey() {
-            const val = document.getElementById('api-key-input').value.trim();
-            if (!val) {
-                showToast('請輸入 API Key', 'error');
-                return;
-            }
-            
-            if (val.includes('...') && apiKey) {
-                closeKeyModal();
-                return;
-            }
-            
-            apiKey = val;
-            localStorage.setItem('gemini_api_key', apiKey);
-            closeKeyModal();
-            showToast('API Key 已儲存', 'success');
+        function movePhoto(i, dir) {
+            const j = i + dir;
+            if (j < 0 || j >= selectedFiles.length) return;
+            [selectedFiles[i], selectedFiles[j]] = [selectedFiles[j], selectedFiles[i]];
+            renderPhotos();
+        }
+
+        function renderPhotos() {
+            const n = selectedFiles.length;
+            $('upload-placeholder').classList.toggle('hidden', n > 0);
+            $('photo-grid').classList.toggle('hidden', n === 0);
+            $('photo-count').textContent = n;
+            $('photo-grid').innerHTML = selectedFiles.map((p, i) => `
+                <div class="polaroid">
+                    <img src="${p.url}" class="w-full aspect-square object-cover" alt="照片 ${i + 1}">
+                    <span class="cap">${i === 0 ? '主照片' : `No.${i + 1}`}</span>
+                    <button type="button" onclick="removePhoto(${i})" class="tiny-btn absolute -top-2 -right-2 bg-[color:var(--ink)] text-white" title="移除照片 ${i + 1}"><i class="fas fa-xmark"></i></button>
+                    ${n > 1 ? `
+                    <button type="button" onclick="movePhoto(${i}, -1)" class="tiny-btn absolute left-1 top-1/2 -translate-y-1/2 bg-white/90 shadow ${i === 0 ? 'invisible' : ''}" title="往前移"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" onclick="movePhoto(${i}, 1)" class="tiny-btn absolute right-1 top-1/2 -translate-y-1/2 bg-white/90 shadow ${i === n - 1 ? 'invisible' : ''}" title="往後移"><i class="fas fa-chevron-right"></i></button>` : ''}
+                </div>`).join('') + (n < MAX_PHOTOS ? `
+                <button type="button" onclick="openPicker()" class="aspect-square border-2 border-dashed border-[color:var(--rule)] rounded text-[color:var(--ink-3)] hover:border-[color:var(--ink)] hover:text-[color:var(--ink)] flex flex-col items-center justify-center gap-1 transition self-center">
+                    <i class="fas fa-plus"></i><span class="text-xs font-bold">再加</span><span class="text-[10px] mono">${n}/${MAX_PHOTOS}</span>
+                </button>` : '');
             checkBtnState();
         }
 
-        // 圖片預覽
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                showToast('圖片檔案過大，請選擇小於 10MB 的圖片', 'error');
-                return;
-            }
-            
-            selectedFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById('preview-img');
-                const placeholder = document.getElementById('upload-placeholder');
-                img.src = e.target.result;
-                img.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                checkBtnState();
-            };
-            reader.readAsDataURL(file);
+        function setupDragDrop() {
+            const box = $('upload-box');
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => box.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+            ['dragenter', 'dragover'].forEach(ev => box.addEventListener(ev, () => box.classList.add('dragover')));
+            ['dragleave', 'drop'].forEach(ev => box.addEventListener(ev, () => box.classList.remove('dragover')));
+            box.addEventListener('drop', e => addImages(e.dataTransfer.files));
         }
 
-        // 拖放功能
-        const uploadBox = document.getElementById('upload-box');
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadBox.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Claude 目前的模型最高支援長邊 2576px：太大的縮小、校正方向、過大的檔案降品質；符合條件的原檔直接送
+        async function prepareImage(file) {
+            let bitmap;
+            try {
+                bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (e) {
+                return { blob: file, name: file.name || 'image' };
+            }
+            const { width, height } = bitmap;
+            const longEdge = Math.max(width, height);
+            const needsResize = longEdge > MAX_EDGE;
+            if (!needsResize && file.size <= MAX_BYTES && file.type !== 'image/gif') {
+                bitmap.close?.();
+                return { blob: file, name: file.name || 'image' };
+            }
+            const scale = needsResize ? MAX_EDGE / longEdge : 1;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(width * scale);
+            canvas.height = Math.round(height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            bitmap.close?.();
+            let blob = null;
+            for (const q of [0.92, 0.85, 0.75, 0.65]) {
+                blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', q));
+                if (blob && blob.size <= MAX_BYTES) break;
+            }
+            return { blob: blob || file, name: 'photo.jpg' };
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadBox.addEventListener(eventName, () => uploadBox.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('dragover'), false);
-        });
-
-        uploadBox.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length > 0) {
-                document.getElementById('file-upload').files = files;
-                previewImage({ target: { files: files } });
-            }
-        });
-
-        // 切換搜尋類型
-        function setPlaceType(type) {
+        // ===== 店家 / 景點 =====
+        function setPlaceType(type, save = true) {
             currentPlaceType = type;
-            const storeBtn = document.getElementById('type-store-btn');
-            const attractionBtn = document.getElementById('type-attraction-btn');
-            const nameInput = document.getElementById('place-name');
-            
-            const baseClass = 'place-type-btn flex-1 py-2 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2';
-            const activeClass = baseClass + ' bg-pink-600 text-white';
-            const inactiveClass = baseClass + ' bg-gray-200 text-gray-700 hover:bg-gray-300';
-            
-            if (type === 'store') {
-                storeBtn.className = activeClass;
-                attractionBtn.className = inactiveClass;
-                nameInput.placeholder = '店家或景點名稱...';
-            } else {
-                attractionBtn.className = activeClass;
-                storeBtn.className = inactiveClass;
-                nameInput.placeholder = '景點名稱...';
-            }
+            $('type-store-btn').classList.toggle('active', type === 'store');
+            $('type-attraction-btn').classList.toggle('active', type === 'attraction');
+            $('place-name').placeholder = type === 'store' ? '店家名稱' : '景點名稱';
+            if (save) saveInputState();
         }
 
-        // 搜尋店家/景點
         async function searchPlace() {
-            const placeName = document.getElementById('place-name').value.trim();
-            const location = document.getElementById('place-location').value.trim();
+            const placeName = $('place-name').value.trim();
+            const location = $('place-location').value.trim();
             const typeLabel = currentPlaceType === 'store' ? '店家' : '景點';
-            
-            if (!placeName) {
-                showToast(`請輸入${typeLabel}名稱`, 'error');
-                return;
-            }
+            if (!placeName) return showToast(`請輸入${typeLabel}名稱`, 'error');
+            if (!apiKey) { showToast('請先設定 Claude API Key', 'error'); return showKeyModal(); }
 
-            if (!apiKey) {
-                showToast('請先設定 API Key', 'error');
-                showKeyModal();
-                return;
-            }
-
-            const btn = document.getElementById('search-place-btn');
-            btn.classList.add('loading');
+            const btn = $('search-place-btn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>查詢中';
             try {
                 const res = await fetch('/api/search-place', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey 
-                    },
-                    body: JSON.stringify({ 
-                        placeName, 
-                        location, 
-                        placeType: currentPlaceType 
-                    })
+                    headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ placeName, location, placeType: currentPlaceType })
                 });
-
-                const data = await res.json();
-                
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || '查詢失敗');
                 if (data.placeInfo && data.placeInfo.found) {
                     currentPlaceInfo = data.placeInfo;
                     displayPlaceInfo(data.placeInfo);
-                    showToast(`已找到${typeLabel}資訊！`, 'success');
+                    showToast(`已找到${typeLabel}資訊`, 'success');
                 } else {
-                    showToast(`找不到此${typeLabel}的詳細資訊，但仍可生成貼文`, 'info');
                     currentPlaceInfo = null;
-                    document.getElementById('place-info-container').classList.add('hidden');
+                    $('place-info-container').classList.add('hidden');
+                    showToast(`查不到這個${typeLabel}，仍可直接出單`, 'info');
                 }
-
+                saveInputState();
             } catch (e) {
                 console.error(e);
-                showToast('搜尋失敗，請稍後再試', 'error');
+                showToast(e.message || '查詢失敗，請稍後再試', 'error');
             } finally {
-                btn.classList.remove('loading');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-search"></i><span>搜尋</span>';
+                btn.innerHTML = '<i class="fas fa-magnifying-glass mr-1"></i>查詢';
             }
         }
 
-        // 顯示店家/景點資訊
         function displayPlaceInfo(info) {
-            const container = document.getElementById('place-info-container');
             const isAttraction = info.category === 'attraction';
-            
-            document.getElementById('place-display-name').textContent = info.name;
-            document.getElementById('place-display-type').textContent = info.type || '';
-            
-            // 更新圖示
-            const iconEl = document.getElementById('place-icon');
-            iconEl.innerHTML = isAttraction 
-                ? '<i class="fas fa-mountain"></i>' 
-                : '<i class="fas fa-store"></i>';
-            
-            let detailsHtml = '';
-            
-            if (info.signature) {
-                const label = isAttraction ? '特色' : '招牌';
-                detailsHtml += `<p><i class="fas fa-star text-yellow-500 mr-2"></i><strong>${label}：</strong>${info.signature}</p>`;
+            $('place-display-name').textContent = info.name || '';
+            $('place-display-type').textContent = info.type || '';
+            $('place-icon').className = `fas ${isAttraction ? 'fa-mountain-sun' : 'fa-store'} mr-1 text-[color:var(--stamp)]`;
+            const row = (label, value) => value ? `<p><span class="mono text-xs text-[color:var(--ink-3)] mr-1">${label}</span>${escapeHtml(value)}</p>` : '';
+            const list = v => Array.isArray(v) && v.length ? v.join('、') : '';
+            let html = '';
+            html += row(isAttraction ? '特色' : '招牌', info.signature);
+            html += row('地點', info.location);
+            html += row('時間', info.hours);
+            html += row('價位', info.priceRange);
+            html += row('門票', info.ticketInfo);
+            html += row('最佳', info.bestTime);
+            html += row('周邊', list(info.nearby));
+            if (info.summary) html += `<p class="italic">「${escapeHtml(info.summary)}」</p>`;
+            if (Array.isArray(info.reviews) && info.reviews.length) {
+                html += `<div class="flex flex-wrap gap-1 pt-1">${info.reviews.map(r => `<span class="text-xs px-2 py-0.5 rounded bg-[color:var(--stamp-soft)] text-[#8f2a1b]">${escapeHtml(r)}</span>`).join('')}</div>`;
             }
-            if (info.location) {
-                detailsHtml += `<p><i class="fas fa-map-marker-alt text-red-500 mr-2"></i><strong>地點：</strong>${info.location}</p>`;
-            }
-            if (info.priceRange) {
-                detailsHtml += `<p><i class="fas fa-dollar-sign text-green-500 mr-2"></i><strong>價位：</strong>${info.priceRange}</p>`;
-            }
-            if (info.ticketInfo) {
-                detailsHtml += `<p><i class="fas fa-ticket-alt text-blue-500 mr-2"></i><strong>門票：</strong>${info.ticketInfo}</p>`;
-            }
-            if (info.bestTime) {
-                detailsHtml += `<p><i class="fas fa-clock text-purple-500 mr-2"></i><strong>最佳時間：</strong>${info.bestTime}</p>`;
-            }
-            if (info.nearby && info.nearby.length > 0) {
-                detailsHtml += `<p><i class="fas fa-map text-indigo-500 mr-2"></i><strong>周邊：</strong>${info.nearby.join('、')}</p>`;
-            }
-            if (info.summary) {
-                detailsHtml += `<p class="mt-2 text-gray-600 italic">"${info.summary}"</p>`;
-            }
-            if (info.reviews && info.reviews.length > 0) {
-                detailsHtml += `<div class="flex flex-wrap gap-1 mt-2">${info.reviews.map(r => `<span class="info-tag text-xs px-2 py-1 rounded-full">${r}</span>`).join('')}</div>`;
-            }
-            
-            document.getElementById('place-details').innerHTML = detailsHtml;
-            container.classList.remove('hidden');
+            $('place-details').innerHTML = html;
+            $('place-info-container').classList.remove('hidden');
         }
 
-        // 清除店家/景點資訊
         function clearPlaceInfo() {
             currentPlaceInfo = null;
-            document.getElementById('place-info-container').classList.add('hidden');
-            document.getElementById('place-name').value = '';
-            document.getElementById('place-location').value = '';
+            $('place-info-container').classList.add('hidden');
+            $('place-name').value = '';
+            $('place-location').value = '';
+            saveInputState();
         }
 
-        // 檢查按鈕狀態
-        document.getElementById('user-desc').addEventListener('input', checkBtnState);
-
+        // ===== 出單 =====
         function checkBtnState() {
-            const desc = document.getElementById('user-desc').value.trim();
-            const btn = document.getElementById('generate-btn');
-            btn.disabled = !(selectedFile && desc && apiKey);
+            const desc = $('user-desc').value.trim();
+            const missing = [];
+            if (!apiKey) missing.push('設定 API Key');
+            if (!selectedFiles.length) missing.push('照片');
+            if (!desc) missing.push('備註');
+            $('generate-btn').disabled = isGenerating || missing.length > 0;
+            $('generate-label').textContent = isGenerating ? '出單中…' : '送出點單';
+            $('generate-hint').textContent = missing.length ? `還缺：${missing.join('、')}` : '';
+            $('regen-btn').disabled = $('generate-btn').disabled;
         }
 
-        // 生成貼文
+        function nextOrderNo() {
+            const n = (Number(loadFromStorage(STORAGE_KEYS.orderNo, 0)) || 0) + 1;
+            saveToStorage(STORAGE_KEYS.orderNo, n);
+            return String(n).padStart(4, '0');
+        }
+
         async function generateCaption() {
-            if (!selectedFile || !apiKey) return;
-            const desc = document.getElementById('user-desc').value.trim();
+            if (isGenerating) return;
+            if (!apiKey) { showToast('請先設定 Claude API Key', 'error'); return showKeyModal(); }
+            if (!selectedFiles.length) return showToast('請先放照片', 'error');
+            const desc = $('user-desc').value.trim();
+            if (!desc) return showToast('請寫一下備註', 'error');
 
-            // UI 狀態更新
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('result-area').classList.add('hidden');
-            document.getElementById('generate-btn').disabled = true;
-
-            const formData = new FormData();
-            formData.append('image', selectedFile);
-            formData.append('description', desc);
-            formData.append('styles', JSON.stringify(selectedStyles));
-            formData.append('rating', currentRating);
-            if (currentPlaceInfo) {
-                formData.append('placeInfo', JSON.stringify(currentPlaceInfo));
-            }
+            isGenerating = true;
+            checkBtnState();
+            const model = MODELS.find(m => m.id === currentModel);
+            $('loading-sub').textContent = `主廚 ${model ? model.label : currentModel}，通常需要 10–30 秒`;
+            $('loading').classList.remove('hidden');
+            $('result-area').classList.add('hidden');
+            $('loading').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             try {
-                const res = await fetch('/api/caption', {
-                    method: 'POST',
-                    headers: { 'x-api-key': apiKey },
-                    body: formData
-                });
+                const formData = new FormData();
+                const prepared = await Promise.all(selectedFiles.map(({ file }) =>
+                    prepareImage(file).catch(() => ({ blob: file, name: file.name || 'image' }))));
+                prepared.forEach((p, i) => formData.append('images', p.blob, `${i + 1}-${p.name}`));
+                formData.append('description', desc);
+                formData.append('styles', JSON.stringify(selectedStyles));
+                formData.append('rating', currentRating);
+                if (currentPlaceInfo) formData.append('placeInfo', JSON.stringify(currentPlaceInfo));
 
-                const data = await res.json();
-                
-                if (!res.ok || data.error) {
-                    throw new Error(data.error || '生成失敗');
-                }
+                const res = await fetch('/api/caption', { method: 'POST', headers: apiHeaders(), body: formData });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) throw new Error(data.error || `出單失敗（${res.status}）`);
+                if (!Array.isArray(data.captions) || data.captions.length === 0) throw new Error('沒有收到貼文內容');
 
-                if (!data.captions || data.captions.length === 0) {
-                    throw new Error('未收到有效的貼文內容');
-                }
-
-                renderResult(data.captions);
-                
-                // 儲存到歷史記錄
-                saveToHistory(data.captions, desc);
-                showHistoryButton();
-                
-                showToast(`成功生成 ${data.captions.length} 則多樣化貼文！`, 'success');
-
+                const order = {
+                    historyId: Date.now(),
+                    orderNo: nextOrderNo(),
+                    model: data.model,
+                    timestamp: new Date().toLocaleString('zh-TW', { hour12: false }),
+                    analysis: data.imageAnalysis || null,
+                    context: { description: desc, placeInfo: currentPlaceInfo, rating: currentRating },
+                    items: data.captions.map(c => ({ style: c.style || '', versions: [{ caption: c.caption }], idx: 0, busy: false }))
+                };
+                currentOrder = order;
+                saveOrderToHistory(order, true);
+                renderOrder(true);
+                showToast(`出單 ${order.items.length} 則貼文`, 'success');
             } catch (e) {
                 console.error(e);
-                showToast(e.message || '生成失敗，請檢查 API Key 或稍後再試', 'error');
+                showToast(e.message || '出單失敗，請稍後再試', 'error');
+                if (/API Key/.test(e.message || '')) showKeyModal();
             } finally {
-                document.getElementById('loading').classList.add('hidden');
+                isGenerating = false;
+                $('loading').classList.add('hidden');
                 checkBtnState();
             }
         }
 
-        // 渲染結果
-        function renderResult(captions) {
-            document.getElementById('result-area').classList.remove('hidden');
-            const container = document.getElementById('captions-container');
-            
-            // 風格顏色映射
-            const styleColors = {
-                '幽默搞笑': 'bg-yellow-100 text-yellow-800',
-                '溫馨感性': 'bg-pink-100 text-pink-800',
-                '美食專家': 'bg-orange-100 text-orange-800',
-                '文青詩意': 'bg-green-100 text-green-800',
-                '活力熱情': 'bg-red-100 text-red-800',
-                '簡約俐落': 'bg-gray-100 text-gray-800',
-                '故事敘述': 'bg-blue-100 text-blue-800',
-                '潮流網紅': 'bg-purple-100 text-purple-800'
-            };
-            
-            // 儲存貼文內容供複製使用
-            window.captionsData = captions.map(item => typeof item === 'string' ? item : item.caption);
-            
-            container.innerHTML = captions.map((item, index) => {
-                const caption = typeof item === 'string' ? item : item.caption;
-                const style = typeof item === 'string' ? '' : item.style;
-                const colorClass = styleColors[style] || 'bg-gray-100 text-gray-800';
-                
-                return `
-                <div class="result-card p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100 relative group" style="animation-delay: ${index * 0.1}s">
-                    <div class="flex items-start gap-3 sm:gap-4">
-                        <div class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 accent-gradient rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg">
-                            ${index + 1}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            ${style ? `<span class="style-badge ${colorClass} mb-2 inline-block text-xs">${style}</span>` : ''}
-                            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4 text-sm sm:text-base break-words">${escapeHtml(caption)}</p>
-                            <button 
-                                data-index="${index}"
-                                onclick="copyCaption(this)"
-                                class="copy-btn inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 font-semibold text-xs sm:text-sm transition"
-                                title="複製貼文"
-                            >
-                                <i class="far fa-copy"></i>
-                                <span>複製</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-            
-            // 滾動到結果區
-            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // ===== 出餐區 =====
+        function renderOrder(animate = false) {
+            const o = currentOrder;
+            if (!o) return;
+            const model = MODELS.find(m => m.id === o.model);
+            $('result-meta').textContent = [`#${o.orderNo}`, model && model.label, o.context?.placeInfo?.name, o.timestamp].filter(Boolean).join(' · ');
+            renderAnalysis(o.analysis);
+            $('captions-container').innerHTML = o.items.map((_, i) => `<div id="ticket-${i}" class="${animate ? 'print-in' : ''}" style="animation-delay:${i * 0.18}s"></div>`).join('');
+            o.items.forEach((_, i) => renderTicket(i));
+            $('result-area').classList.remove('hidden');
+            setTimeout(() => $('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
         }
 
-        // 複製貼文
-        function copyCaption(btn) {
-            const index = parseInt(btn.getAttribute('data-index'));
-            const text = window.captionsData[index];
-            
-            if (!text) {
-                showToast('複製失敗：找不到貼文內容', 'error');
-                return;
-            }
-            
-            // 嘗試使用 Clipboard API
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showCopySuccess(btn);
-                }).catch(() => {
-                    // 如果 Clipboard API 失敗，使用備用方法
-                    fallbackCopy(text, btn);
-                });
-            } else {
-                // 瀏覽器不支援 Clipboard API，使用備用方法
-                fallbackCopy(text, btn);
-            }
+        function renderAnalysis(a) {
+            const box = $('analysis-container');
+            if (!a || !a.summary) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            const chips = arr => (Array.isArray(arr) ? arr : []).filter(Boolean).map(t => `<span class="note-chip">${escapeHtml(t)}</span>`).join(' ');
+            const row = (label, content) => content ? `<div class="flex gap-2 items-start"><span class="mono text-xs font-bold w-10 shrink-0 pt-0.5">${label}</span><div class="flex flex-wrap gap-1.5">${content}</div></div>` : '';
+            box.innerHTML = `
+                <div class="note">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <p class="font-black"><i class="fas fa-eye mr-1"></i>主廚筆記：照片裡看到的</p>
+                        <span class="mono text-[10px] opacity-60">看錯了？補進備註後整單重做</span>
+                    </div>
+                    <p class="text-sm mb-2">${escapeHtml(a.summary)}</p>
+                    <div class="space-y-1.5 text-sm">
+                        ${row('主體', chips(a.subjects))}
+                        ${row('文字', chips(a.visible_text))}
+                        ${row('場景', a.setting ? chips([a.setting]) : '')}
+                        ${row('氛圍', a.mood ? chips([a.mood]) : '')}
+                        ${row('細節', chips(a.details))}
+                    </div>
+                </div>`;
+            box.classList.remove('hidden');
         }
-        
-        // 備用複製方法（使用 textarea）
-        function fallbackCopy(text, btn) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            textarea.style.top = '0';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            
+
+        function renderTicket(i) {
+            const o = currentOrder;
+            const item = o.items[i];
+            const wrap = $(`ticket-${i}`);
+            if (!wrap) return;
+            const keepInput = wrap.querySelector('.chat-input')?.value || '';
+            const v = item.versions[item.idx];
+            const total = item.versions.length;
+            const len = [...v.caption].length;
+            const styleEntry = Object.values(STYLES).find(s => s.name === item.style);
+
+            const thread = item.versions.slice(1).map((ver, k) => `
+                <div class="bubble me">${escapeHtml(ver.instruction || '')}</div>
+                <div class="bubble bot">${escapeHtml(ver.reply || '改好了！')} <button type="button" onclick="setVersion(${i}, ${k + 1})">看 v${k + 2}</button></div>`).join('');
+
+            wrap.innerHTML = `
+                <div class="paper-wrap">
+                    <div class="paper receipt">
+                        <div class="hdr">
+                            <p class="font-bold tracking-[.2em]">★ 貼文廚房 ★</p>
+                            <p class="text-xs text-[color:var(--ink-3)]">POST KITCHEN · 內用</p>
+                        </div>
+                        <hr class="rule">
+                        <div class="row"><span>單號 #${escapeHtml(o.orderNo)}-${i + 1}</span><span>${escapeHtml(o.timestamp || '')}</span></div>
+                        <hr class="rule">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="font-black">${styleEntry ? styleEntry.emoji + ' ' : ''}${escapeHtml(item.style || '自由發揮')} <span class="mono font-normal text-[color:var(--ink-3)]">×1</span></p>
+                            <div class="flex items-center gap-1 mono text-xs text-[color:var(--ink-2)]">
+                                ${total > 1 ? `<button class="ver-btn" onclick="setVersion(${i}, ${item.idx - 1})" ${item.idx === 0 ? 'disabled' : ''} title="上一版"><i class="fas fa-chevron-left"></i></button>` : ''}
+                                <span>v${item.idx + 1}${total > 1 ? `/${total}` : ''}</span>
+                                ${total > 1 ? `<button class="ver-btn" onclick="setVersion(${i}, ${item.idx + 1})" ${item.idx === total - 1 ? 'disabled' : ''} title="下一版"><i class="fas fa-chevron-right"></i></button>` : ''}
+                            </div>
+                        </div>
+                        <hr class="rule">
+                        <p class="body">${escapeHtml(v.caption)}</p>
+                        <hr class="rule">
+                        <div class="row items-center">
+                            <span>字數 ${len}</span>
+                            ${item.idx > 0 ? '<span class="stamp">已改單</span>' : ''}
+                            <button type="button" onclick="copyCaption(${i}, this)" class="btn-line px-3 py-1.5 text-xs"><i class="far fa-copy mr-1"></i><span>複製</span></button>
+                        </div>
+                        <div class="barcode mt-4"></div>
+                        <p class="text-center mono text-[10px] text-[color:var(--ink-3)] mt-1 tracking-[.3em]">THANK YOU · 謝謝光臨</p>
+                    </div>
+                </div>
+
+                <div class="chat">
+                    <div class="chat-head"><span class="avatar">編</span><span class="font-bold">小編阿文</span><span class="text-white/40">· 想怎麼改直接說</span></div>
+                    <div class="flex flex-col gap-2 mb-2 ${thread || item.busy ? '' : 'hidden'}">
+                        ${thread}
+                        ${item.busy ? '<div class="bubble bot typing"><span></span><span></span><span></span></div>' : ''}
+                    </div>
+                    <div class="quick mb-2">${QUICK_REFINES.map(q => `<button type="button" onclick="refineCaption(${i}, '${q}')" ${item.busy ? 'disabled' : ''}>${q}</button>`).join('')}</div>
+                    <form class="flex gap-2" onsubmit="event.preventDefault(); sendRefine(${i});">
+                        <input class="chat-input" placeholder="例如：把冰淇淋寫進去、語氣再嗆一點" maxlength="300" ${item.busy ? 'disabled' : ''}>
+                        <button type="submit" class="chat-send" ${item.busy ? 'disabled' : ''} title="送出"><i class="fas fa-paper-plane text-sm"></i></button>
+                    </form>
+                </div>`;
+            const input = wrap.querySelector('.chat-input');
+            if (input && keepInput && !item.busy) input.value = keepInput;
+        }
+
+        function setVersion(i, idx) {
+            const item = currentOrder?.items[i];
+            if (!item || idx < 0 || idx >= item.versions.length) return;
+            item.idx = idx;
+            renderTicket(i);
+            saveOrderToHistory(currentOrder);
+        }
+
+        function sendRefine(i) {
+            const input = $(`ticket-${i}`)?.querySelector('.chat-input');
+            const text = (input?.value || '').trim();
+            if (!text) return showToast('先跟小編說想怎麼改', 'error');
+            input.value = '';
+            refineCaption(i, text);
+        }
+
+        async function refineCaption(i, instruction) {
+            const o = currentOrder;
+            const item = o?.items[i];
+            if (!item || item.busy) return;
+            if (!apiKey) { showToast('請先設定 Claude API Key', 'error'); return showKeyModal(); }
+
+            const base = item.versions[item.idx];
+            const historySteps = item.versions.slice(1, item.idx + 1).map(v => ({ instruction: v.instruction }));
+            // 先把使用者的話放進對話串
+            item.busy = true;
+            item.pending = instruction;
+            renderTicketWithPending(i);
+
             try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showCopySuccess(btn);
-                } else {
-                    showToast('複製失敗，請手動選取複製', 'error');
-                }
-            } catch (err) {
-                showToast('複製失敗，請手動選取複製', 'error');
+                const res = await fetch('/api/refine', {
+                    method: 'POST',
+                    headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        caption: base.caption,
+                        style: item.style,
+                        instruction,
+                        description: o.context?.description || '',
+                        imageAnalysis: o.analysis,
+                        placeInfo: o.context?.placeInfo || null,
+                        rating: o.context?.rating || 0,
+                        history: historySteps
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) throw new Error(data.error || `修改失敗（${res.status}）`);
+                item.versions.push({ caption: data.caption, instruction, reply: data.reply });
+                item.idx = item.versions.length - 1;
+                saveOrderToHistory(o);
+            } catch (e) {
+                console.error(e);
+                showToast(e.message || '修改失敗，請稍後再試', 'error');
+                if (/API Key/.test(e.message || '')) showKeyModal();
+            } finally {
+                item.busy = false;
+                item.pending = null;
+                renderTicket(i);
             }
-            
-            document.body.removeChild(textarea);
         }
-        
-        // 顯示複製成功
-        function showCopySuccess(btn) {
-            const icon = btn.querySelector('i');
+
+        // 送出中：先顯示使用者氣泡＋打字中
+        function renderTicketWithPending(i) {
+            renderTicket(i);
+            const item = currentOrder.items[i];
+            const wrap = $(`ticket-${i}`);
+            const threadBox = wrap.querySelector('.chat .flex.flex-col');
+            if (threadBox && item.pending) {
+                threadBox.classList.remove('hidden');
+                const typing = threadBox.querySelector('.typing');
+                const me = document.createElement('div');
+                me.className = 'bubble me';
+                me.textContent = item.pending;
+                threadBox.insertBefore(me, typing);
+            }
+        }
+
+        // ===== 複製 =====
+        async function copyText(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) { /* 改用備用方法 */ }
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            let ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            document.body.removeChild(ta);
+            return ok;
+        }
+
+        async function copyCaption(i, btn) {
+            const item = currentOrder?.items[i];
+            if (!item) return;
+            const ok = await copyText(item.versions[item.idx].caption);
+            if (!ok) return showToast('複製失敗，請手動選取', 'error');
             const span = btn.querySelector('span');
-            icon.className = "fas fa-check";
+            const icon = btn.querySelector('i');
             span.textContent = '已複製';
-            btn.classList.add('bg-green-100', 'text-green-700');
-            btn.classList.remove('bg-gray-100', 'text-gray-700');
-            
-            setTimeout(() => {
-                icon.className = "far fa-copy";
-                span.textContent = '複製';
-                btn.classList.remove('bg-green-100', 'text-green-700');
-                btn.classList.add('bg-gray-100', 'text-gray-700');
-            }, 2000);
-            
+            icon.className = 'fas fa-check mr-1';
+            setTimeout(() => { span.textContent = '複製'; icon.className = 'far fa-copy mr-1'; }, 1800);
             showToast('已複製到剪貼簿', 'success');
         }
 
-        // 顯示 Toast 通知
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toast-icon');
-            const messageEl = document.getElementById('toast-message');
-            
-            messageEl.textContent = message;
-            
-            if (type === 'error') {
-                icon.className = 'fas fa-exclamation-circle text-red-500 text-xl';
-            } else if (type === 'info') {
-                icon.className = 'fas fa-info-circle text-blue-500 text-xl';
-            } else {
-                icon.className = 'fas fa-check-circle text-green-500 text-xl';
-            }
-            
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+        async function copyAll() {
+            if (!currentOrder) return;
+            const text = currentOrder.items.map(it => (it.style ? `【${it.style}】\n` : '') + it.versions[it.idx].caption).join('\n\n———\n\n');
+            const ok = await copyText(text);
+            showToast(ok ? `已複製全部 ${currentOrder.items.length} 則` : '複製失敗，請手動選取', ok ? 'success' : 'error');
         }
 
-        // HTML 轉義
+        // ===== 訂單紀錄 =====
+        // 舊版紀錄的 captions 是 [{style, caption}] 或字串；新版多了 versions 與 idx
+        function orderFromHistory(h) {
+            const items = (h.captions || []).map(c => {
+                if (typeof c === 'string') return { style: '', versions: [{ caption: c }], idx: 0, busy: false };
+                const versions = Array.isArray(c.versions) && c.versions.length ? c.versions : [{ caption: c.caption || '' }];
+                const idx = Number.isInteger(c.idx) && c.idx < versions.length ? c.idx : versions.length - 1;
+                return { style: c.style || '', versions, idx, busy: false };
+            });
+            return {
+                historyId: h.id,
+                orderNo: h.orderNo || String(h.id).slice(-4),
+                model: h.model,
+                timestamp: h.timestamp,
+                analysis: h.imageAnalysis || null,
+                context: { description: h.description || '', placeInfo: h.placeInfo || null, rating: h.rating || 0 },
+                items
+            };
+        }
+
+        function saveOrderToHistory(o, isNew = false) {
+            const entry = {
+                id: o.historyId,
+                orderNo: o.orderNo,
+                timestamp: o.timestamp,
+                description: o.context?.description || '',
+                placeInfo: o.context?.placeInfo || null,
+                rating: o.context?.rating || 0,
+                model: o.model,
+                imageAnalysis: o.analysis,
+                captions: o.items.map(it => ({ style: it.style, caption: it.versions[it.idx].caption, versions: it.versions, idx: it.idx }))
+            };
+            const at = captionsHistory.findIndex(h => h.id === entry.id);
+            if (at > -1) captionsHistory[at] = entry;
+            else if (isNew) captionsHistory.unshift(entry);
+            captionsHistory = captionsHistory.slice(0, 10);
+            saveToStorage(STORAGE_KEYS.history, captionsHistory);
+            updateHistoryButton();
+        }
+
+        function updateHistoryButton() {
+            $('history-btn').classList.toggle('hidden', captionsHistory.length === 0);
+            $('history-count').textContent = captionsHistory.length;
+        }
+
+        function showHistory() {
+            const box = $('history-container');
+            if (!captionsHistory.length) {
+                box.innerHTML = `<p class="text-center text-[color:var(--ink-3)] py-8 mono">— 目前沒有訂單 —</p>`;
+            } else {
+                box.innerHTML = captionsHistory.map((h, hi) => {
+                    const o = orderFromHistory(h);
+                    return `
+                    <div class="py-3 ${hi ? 'border-t-[1.5px] border-dashed border-[color:var(--rule)]' : ''}">
+                        <div class="flex justify-between mono text-xs text-[color:var(--ink-3)]">
+                            <span>#${escapeHtml(o.orderNo)}${o.context.placeInfo?.name ? ' · ' + escapeHtml(o.context.placeInfo.name) : ''}</span>
+                            <span>${escapeHtml(h.timestamp || '')}</span>
+                        </div>
+                        <p class="text-sm mt-1 line-clamp-2">${escapeHtml(o.context.description)}</p>
+                        <p class="mono text-xs mt-1 text-[color:var(--ink-2)]">${o.items.map(it => escapeHtml(it.style || '貼文')).join(' · ')}</p>
+                        <button onclick="loadHistoryItem(${hi})" class="btn-line text-xs px-3 py-1.5 mt-2">重新打開這張單</button>
+                    </div>`;
+                }).join('');
+            }
+            $('history-modal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() { $('history-modal').classList.add('hidden'); }
+
+        function loadHistoryItem(hi) {
+            const h = captionsHistory[hi];
+            if (!h) return;
+            closeHistoryModal();
+            currentOrder = orderFromHistory(h);
+            renderOrder(true);
+        }
+
+        function clearHistory() {
+            if (!confirm('確定要清除所有訂單紀錄嗎？')) return;
+            captionsHistory = [];
+            saveToStorage(STORAGE_KEYS.history, []);
+            closeHistoryModal();
+            updateHistoryButton();
+            showToast('已清除訂單紀錄', 'success');
+        }
+
+        // ===== Toast =====
+        let toastTimer = null;
+        function showToast(message, type = 'success') {
+            const icons = {
+                error: 'fas fa-circle-exclamation text-[color:var(--stamp)]',
+                info: 'fas fa-circle-info text-sky-600',
+                success: 'fas fa-circle-check text-emerald-600'
+            };
+            $('toast-icon').className = `${icons[type] || icons.success} text-lg shrink-0`;
+            $('toast-message').textContent = message;
+            $('toast').classList.remove('hide');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => $('toast').classList.add('hide'), type === 'error' ? 4500 : 2600);
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = text == null ? '' : String(text);
             return div.innerHTML;
         }
-
-        // 初始化按鈕狀態
-        checkBtnState();
     </script>
 </body>
 </html>
