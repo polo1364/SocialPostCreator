@@ -1,10 +1,13 @@
 {
   "name": "social-post-creator",
   "version": "1.0.0",
-  "description": "AI-powered social media post generator using Claude",
+  "description": "貼文廚房：AI 社群貼文產生器（Claude）",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:css": "tailwindcss -i src/tailwind.css -o public/styles.css --minify",
+    "build:icons": "node scripts/make-icons.js",
+    "test": "node --test"
   },
   "keywords": [
     "ai",
@@ -22,5 +25,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
   }
 }
