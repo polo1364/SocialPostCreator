@@ -6,7 +6,9 @@
 
 - 一次最多 5 張照片，自動轉正並調整到最適合辨識的解析度
 - 先辨識照片（主廚筆記），再依風格寫 3–5 則貼文，邊寫邊印出來
-- 選發文平台：IG、Threads、FB、小紅書，會依平台調整長度、換行與 Hashtag
+- 主要為臉書設計：預設臉書寫法；「準備發文」可裁成臉書比例（1:1、4:5、1.91:1、限動 9:16）、複製替代文字，手機一鍵分享照片＋文案
+- 也支援 IG、Threads、小紅書，會依平台調整長度、換行與 Hashtag
+- 常用 Hashtag、外語版本（英／日／韓）、收藏、紀錄匯出／匯入
 - 「我的口吻」：貼幾篇自己寫過的貼文，讓 Claude 模仿你的語氣
 - 店家／景點資訊：Claude 上網查詢後融入貼文
 - 每張收據都能聊天微調、切換版本、單道重做、存成圖片
@@ -29,6 +31,17 @@ npm start
 npm test            # 後端測試（不會呼叫真正的 Claude API）
 npm run build:css   # 修改 index.html 的 Tailwind class 後重新編譯 public/styles.css
 npm run build:icons # 重新產生 PWA 圖示
+npm run build:sprite # 重新產生 public/icons.svg（只含用到的圖示）
 ```
+
+### 真 Key 冒煙測試
+
+實際呼叫 Claude 跑一次出單＋微調，確認整條流程正常（會產生約 US$0.01–0.05 費用）：
+
+```powershell
+$env:ANTHROPIC_API_KEY="sk-ant-..."; npm run smoke
+```
+
+可加 `$env:SMOKE_IMAGE="C:照片.jpg"` 用自己的照片。
 
 `public/styles.css` 是編譯後的檔案，已一併提交，部署時不需要額外建置。

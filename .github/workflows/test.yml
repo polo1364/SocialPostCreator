@@ -1,0 +1,23 @@
+name: 測試
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: 確認編譯後的 CSS 與圖示是最新的
+        run: |
+          npm run build:css
+          npm run build:sprite
+          git diff --exit-code -- public/styles.css public/icons.svg

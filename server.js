@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -68,11 +67,28 @@ const upload = multer({
 });
 
 // ===== Middleware 與靜態檔 =====
-app.use(cors());
+// 不開放跨網域（不使用 cors），其他網站無法在使用者瀏覽器裡借用這台伺服器。
+// CSP：只允許本站腳本與必要的 CDN（字型、存圖工具）。
+const CSP = [
+    "default-src 'self'",
+    "script-src 'self' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' blob: data:",
+    "connect-src 'self' blob: data: https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net",
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'"
+].join('; ');
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', CSP);
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
 });
@@ -238,6 +254,32 @@ const PLATFORMS = {
     xiaohongshu: { name: '小紅書', length: '每則約一百五十到四百字', limit: 1000, rules: '寫給小紅書：第一行是二十字內、含 Emoji 的吸睛標題；內文分點或分段、大量使用 Emoji；文末放 5 到 10 個 Hashtag。仍使用繁體中文。' }
 };
 
+const LANGUAGES = { en: '英文', ja: '日文', ko: '韓文' };
+
+function resolveLanguage(value) {
+    return LANGUAGES[value] ? value : null;
+}
+
+function buildTranslationContext(lang) {
+    if (!lang) return '每則的 translation 一律填空字串。';
+    return `每則另外提供 translation：把該則貼文自然地翻成${LANGUAGES[lang]}，像當地人寫的社群貼文，保留 Emoji 與換行；Hashtag 可翻譯或保留原文。`;
+}
+
+function cleanHashtags(value) {
+    if (typeof value !== 'string') return [];
+    return [...new Set(value.split(/[\s,，、#＃]+/)
+        .map(t => t.trim())
+        .filter(t => t && t.length <= 30))]
+        .slice(0, 10)
+        .map(t => '#' + t);
+}
+
+function buildHashtagContext(value) {
+    const tags = cleanHashtags(value);
+    if (!tags.length) return '';
+    return `【使用者的常用 Hashtag】${tags.join(' ')}：每則都要原樣放在文末；平台建議的 Hashtag 數量若較少，就只放這些、不另外加。`;
+}
+
 function resolvePlatform(value) {
     return PLATFORMS[value] ? value : 'general';
 }
@@ -272,17 +314,18 @@ const CAPTIONS_SCHEMA = {
             required: ['summary', 'subjects', 'visible_text', 'setting', 'mood', 'details'],
             additionalProperties: false
         },
+        alt_texts: { type: 'array', items: { type: 'string' } },
         captions: {
             type: 'array',
             items: {
                 type: 'object',
-                properties: { style: { type: 'string' }, caption: { type: 'string' } },
-                required: ['style', 'caption'],
+                properties: { style: { type: 'string' }, caption: { type: 'string' }, translation: { type: 'string' } },
+                required: ['style', 'caption', 'translation'],
                 additionalProperties: false
             }
         }
     },
-    required: ['image_analysis', 'captions'],
+    required: ['image_analysis', 'alt_texts', 'captions'],
     additionalProperties: false
 };
 
@@ -383,6 +426,7 @@ app.post('/api/caption', uploadImages, async (req, res) => {
         const multi = files.length > 1;
         const model = resolveModel(req);
         const platform = resolvePlatform(req.body.platform);
+        const language = resolveLanguage(req.body.language);
         const userDescription = (req.body.description || (multi ? '這組照片' : '這張照片')).trim().slice(0, 1000);
         const placeInfo = safeJsonParse(req.body.placeInfo, null);
         const rating = parseInt(req.body.rating, 10) || 0;
@@ -415,6 +459,7 @@ app.post('/api/caption', uploadImages, async (req, res) => {
 ${buildRatingContext(rating)}
 ${buildPlaceContext(placeInfo)}
 ${buildVoiceContext(req.body.voiceSamples)}
+${buildHashtagContext(req.body.hashtags)}
 
 ${IMAGE_ANALYSIS_GUIDE}
 
@@ -436,7 +481,10 @@ ${styleRequirements}
 4. 每則至少提到一個 image_analysis 裡的具體細節，讓讀者看得出是在講這${multi ? '組' : '張'}照片
 5. 圖片裡看不到、資料裡也沒有的細節不要編造
 
-再輸出 captions 陣列，每項的 style 填上方的風格名稱（例如「幽默搞笑」），caption 填貼文內容。`;
+接著填 alt_texts：依照片順序，為每張照片寫一段替代文字（給視障者的讀屏軟體用，也可貼到臉書照片的「替代文字」），客觀描述畫面內容，四十到一百字，不加 Hashtag、Emoji 或行銷語氣。
+
+最後輸出 captions 陣列，每項的 style 填上方的風格名稱（例如「幽默搞笑」），caption 填貼文內容。
+${buildTranslationContext(language)}`;
 
         log(`[${model}] [${platform}] 為「${userDescription.slice(0, 30)}」生成 ${stylesToUse.length} 則貼文（${files.length} 張照片${redoStyle ? '，重做' : ''}）`);
 
@@ -499,8 +547,9 @@ ${styleRequirements}
 
         let captions = [];
         let imageAnalysis = null;
+        let data = null;
         if (!failure) {
-            const data = safeJsonParse(cleanJson(lastText(response)), null);
+            data = safeJsonParse(cleanJson(lastText(response)), null);
             captions = Array.isArray(data?.captions) ? data.captions.filter(c => c && typeof c.caption === 'string' && c.caption.trim()) : [];
             imageAnalysis = data?.image_analysis || null;
             if (captions.length === 0) failure = { status: 500, message: 'AI 回應格式錯誤，請重試' };
@@ -512,7 +561,8 @@ ${styleRequirements}
         }
 
         log(`成功生成 ${captions.length} 則貼文（約 US$${cost?.usd ?? '?'}）`);
-        const payload = { captions, imageAnalysis, model, platform, placeInfo: placeInfo || null, cost };
+        const altTexts = Array.isArray(data?.alt_texts) ? data.alt_texts.filter(t => typeof t === 'string').slice(0, files.length) : [];
+        const payload = { captions, imageAnalysis, altTexts, model, platform, language, placeInfo: placeInfo || null, cost };
         if (send) { send('done', payload); return res.end(); }
         res.json(payload);
     } catch (error) {
@@ -527,14 +577,14 @@ ${styleRequirements}
 // ===== 微調 API：依一句指示改寫單則貼文 =====
 const REFINE_SCHEMA = {
     type: 'object',
-    properties: { caption: { type: 'string' }, reply: { type: 'string' } },
-    required: ['caption', 'reply'],
+    properties: { caption: { type: 'string' }, translation: { type: 'string' }, reply: { type: 'string' } },
+    required: ['caption', 'translation', 'reply'],
     additionalProperties: false
 };
 
 app.post('/api/refine', async (req, res) => {
     try {
-        const { caption, style, instruction, description, imageAnalysis, placeInfo, rating, history, platform, voiceSamples } = req.body || {};
+        const { caption, style, instruction, description, imageAnalysis, placeInfo, rating, history, platform, voiceSamples, hashtags, language } = req.body || {};
         if (typeof caption !== 'string' || !caption.trim()) return res.status(400).json({ error: '缺少要修改的貼文' });
         if (typeof instruction !== 'string' || !instruction.trim()) return res.status(400).json({ error: '請輸入想怎麼改' });
         const cred = resolveCredential(req);
@@ -565,6 +615,7 @@ app.post('/api/refine', async (req, res) => {
 
         const prompt = `${analysisText ? `<photo>\n${analysisText}\n</photo>\n` : ''}${buildPlaceContext(placeInfo)}
 ${buildVoiceContext(voiceSamples)}
+${buildHashtagContext(hashtags)}
 ${description ? `使用者原本的描述：「${String(description).slice(0, 1000)}」\n` : ''}${RATING_TONES[r] ? `使用者給了 ${r} 星（${RATING_TONES[r].mood}），語調要符合。\n` : ''}貼文風格：${String(style || '自由發揮').slice(0, 20)}
 ${buildPlatformContext(platformKey)}（長度：${PLATFORMS[platformKey].length}，除非使用者這次要求改變長度）
 ${pastSteps ? `\n先前已做過的修改（請維持這些要求）：\n${pastSteps}\n` : ''}
@@ -574,7 +625,7 @@ ${caption.slice(0, 3000)}
 
 使用者這次的要求：「${instruction.slice(0, 500)}」
 
-caption 填改寫後的完整貼文；reply 用一句輕鬆口語的話回覆使用者你改了什麼（二十字內）。`;
+caption 填改寫後的完整貼文；${buildTranslationContext(resolveLanguage(language))}reply 用一句輕鬆口語的話回覆使用者你改了什麼（二十字內）。`;
 
         log(`[${model}] 微調貼文：${instruction.slice(0, 40)}`);
 
@@ -590,7 +641,7 @@ caption 填改寫後的完整貼文；reply 用一句輕鬆口語的話回覆使
         const data = safeJsonParse(cleanJson(lastText(response)), null);
         if (!data || typeof data.caption !== 'string' || !data.caption.trim()) throw new Error('AI 回應格式錯誤，請重試');
 
-        res.json({ caption: data.caption.trim(), reply: (data.reply || '改好了！').trim(), model, cost });
+        res.json({ caption: data.caption.trim(), translation: (data.translation || '').trim(), reply: (data.reply || '改好了！').trim(), model, cost });
     } catch (error) {
         log('微調錯誤:', error.message);
         const { status, message } = toUserError(error);
@@ -623,4 +674,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, PLATFORMS, STYLE_DEFINITIONS };
+module.exports = { app, PLATFORMS, STYLE_DEFINITIONS, cleanHashtags };

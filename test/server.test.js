@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { app } = require('../server');
+const { app, cleanHashtags } = require('../server');
 const { parsePartialJson, repairJson } = require('../lib/partial-json');
 const { estimateCost } = require('../lib/pricing');
 
@@ -42,7 +42,7 @@ test('health、模型與平台端點', async () => {
 
 test('首頁與 PWA 檔案可存取，原始碼不外洩', async () => {
     assert.equal((await fetch(`${base}/`)).status, 200);
-    for (const p of ['/manifest.webmanifest', '/sw.js', '/styles.css', '/icons/icon-192.png']) {
+    for (const p of ['/manifest.webmanifest', '/sw.js', '/styles.css', '/app.css', '/app.js', '/icons.svg', '/icons/icon-192.png']) {
         assert.equal((await fetch(`${base}${p}`)).status, 200, p);
     }
     for (const p of ['/server.js', '/package.json', '/lib/pricing.js', '/.gitignore']) {
@@ -108,4 +108,26 @@ test('費用估算', () => {
     const s = estimateCost('claude-opus-5-5', { input_tokens: 0, output_tokens: 0, server_tool_use: { web_search_requests: 3 } });
     assert.equal(s.usd, 0.03);
     assert.equal(estimateCost('unknown-model', { input_tokens: 1 }), null);
+});
+
+test('安全標頭：有 CSP、不開放跨網域', async () => {
+    const res = await fetch(`${base}/`, { headers: { Origin: 'https://evil.example' } });
+    assert.match(res.headers.get('content-security-policy') || '', /script-src 'self'/);
+    assert.equal(res.headers.get('x-frame-options'), 'DENY');
+    assert.equal(res.headers.get('access-control-allow-origin'), null);
+    const pre = await fetch(`${base}/api/refine`, { method: 'OPTIONS', headers: { Origin: 'https://evil.example', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'x-api-key' } });
+    assert.equal(pre.headers.get('access-control-allow-origin'), null);
+});
+
+test('首頁沒有 inline 腳本或事件（配合 CSP）', async () => {
+    const html = await fetch(`${base}/`).then(r => r.text());
+    assert.doesNotMatch(html, /\son(click|submit|change|input)=/i);
+    assert.doesNotMatch(html, /<script>/i);
+});
+
+test('常用 Hashtag 整理', () => {
+    assert.deepEqual(cleanHashtags('#台中美食 週末去哪,#台中美食  ##咖啡'), ['#台中美食', '#週末去哪', '#咖啡']);
+    assert.deepEqual(cleanHashtags(''), []);
+    assert.deepEqual(cleanHashtags(null), []);
+    assert.equal(cleanHashtags(Array.from({ length: 20 }, (_, i) => 't' + i).join(' ')).length, 10);
 });

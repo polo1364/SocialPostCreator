@@ -1,10 +1,10 @@
 // 貼文廚房 service worker
 // - 網頁殼：網路優先，離線時用快取（API 一律不快取）
 // - 分享目標：接住從相簿「分享」過來的照片，暫存後導回首頁
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `shell-${VERSION}`;
 const SHARE_CACHE = 'share-inbox';
-const SHELL = ['/', '/styles.css', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
+const SHELL = ['/', '/styles.css', '/app.css', '/app.js', '/icons.svg', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', event => {
     event.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
