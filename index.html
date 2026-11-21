@@ -5,19 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="貼文廚房：上傳照片點單，Claude 幫你出單臉書貼文，還能像聊天一樣微調">
     <meta name="theme-color" content="#1f1f22">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' blob: data: https://api.anthropic.com https://esm.sh https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>貼文廚房 · AI 社群貼文產生器</title>
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/png" href="/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="public/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="public/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="貼文廚房">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" crossorigin="anonymous">
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="/app.css">
+    <link rel="stylesheet" href="public/styles.css">
+    <link rel="stylesheet" href="public/app.css">
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js" defer></script>
-    <script src="/app.js" defer></script>
+    <script type="module" src="public/app.js"></script>
 </head>
 <body class="py-6 sm:py-8 px-4">
 
@@ -25,14 +27,14 @@
     <nav class="max-w-5xl mx-auto flex items-center justify-between gap-3 mb-8">
         <div class="sign text-sm sm:text-base font-bold"><span class="lamp">●</span> 貼文廚房 <span class="hidden sm:inline opacity-60">POST KITCHEN</span></div>
         <div class="flex items-center gap-2">
-            <button id="install-btn" data-action="installApp" class="pill hidden" title="加到主畫面"><svg class="ic"><use href="/icons.svg#phone"/></svg><span class="hidden sm:inline">安裝</span></button>
+            <button id="install-btn" data-action="installApp" class="pill hidden" title="加到主畫面"><svg class="ic"><use href="public/icons.svg#phone"/></svg><span class="hidden sm:inline">安裝</span></button>
             <button id="history-btn" data-action="showHistory" class="pill hidden" title="訂單紀錄">
-                <svg class="ic"><use href="/icons.svg#receipt"/></svg><span id="history-count">0</span>
+                <svg class="ic"><use href="public/icons.svg#receipt"/></svg><span id="history-count">0</span>
             </button>
             <button data-action="showKeyModal" class="pill" title="設定 Claude API Key 與模型">
                 <span id="key-dot" class="dot bg-red-400"></span>
                 <span id="key-status">未設定 API Key</span>
-                <svg class="ic text-xs opacity-70"><use href="/icons.svg#gear"/></svg>
+                <svg class="ic text-xs opacity-70"><use href="public/icons.svg#gear"/></svg>
             </button>
         </div>
     </nav>
@@ -52,7 +54,7 @@
                 <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">食材（照片）</span><span class="sec-hint">最多 5 張 · <span id="photo-count">0</span>/5</span></div>
                 <div id="upload-box" class="drop p-3">
                     <button type="button" id="upload-placeholder" data-action="openPicker" class="w-full min-h-[150px] flex flex-col items-center justify-center text-[color:var(--ink-2)]">
-                        <svg class="ic text-3xl mb-2"><use href="/icons.svg#camera"/></svg>
+                        <svg class="ic text-3xl mb-2"><use href="public/icons.svg#camera"/></svg>
                         <span class="font-bold text-[color:var(--ink)]">點這裡選照片，或拖放進來</span>
                         <span class="text-xs mt-1">可一次選多張，也能 Ctrl+V 貼上；會自動轉正並調到最適合辨識的尺寸</span>
                     </button>
@@ -74,14 +76,14 @@
             <section>
                 <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">加點：店家／景點資訊</span><span class="sec-hint">選填，會上網查</span></div>
                 <div class="seg mb-3" role="tablist">
-                    <button id="type-store-btn" type="button" data-action="setPlaceType" data-v="store" class="active"><svg class="ic mr-1"><use href="/icons.svg#store"/></svg>店家</button>
-                    <button id="type-attraction-btn" type="button" data-action="setPlaceType" data-v="attraction"><svg class="ic mr-1"><use href="/icons.svg#mountain"/></svg>景點</button>
+                    <button id="type-store-btn" type="button" data-action="setPlaceType" data-v="store" class="active"><svg class="ic mr-1"><use href="public/icons.svg#store"/></svg>店家</button>
+                    <button id="type-attraction-btn" type="button" data-action="setPlaceType" data-v="attraction"><svg class="ic mr-1"><use href="public/icons.svg#mountain"/></svg>景點</button>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
                     <input type="text" id="place-name" class="field flex-1 min-w-0" placeholder="店家名稱">
                     <div class="flex gap-2 items-end">
                         <input type="text" id="place-location" class="field sm:w-28 flex-1" placeholder="地區">
-                        <button id="search-place-btn" type="button" data-action="searchPlace" class="btn-line px-4 py-2 text-sm shrink-0"><svg class="ic mr-1"><use href="/icons.svg#search"/></svg>查詢</button>
+                        <button id="search-place-btn" type="button" data-action="searchPlace" class="btn-line px-4 py-2 text-sm shrink-0"><svg class="ic mr-1"><use href="public/icons.svg#search"/></svg>查詢</button>
                     </div>
                 </div>
                 <div id="place-info-container" class="hidden mt-3 border-l-4 border-[color:var(--stamp)] bg-[color:var(--paper-2)] p-3 rounded-r">
@@ -90,7 +92,7 @@
                             <p class="font-black truncate"><span id="place-icon" class="text-[color:var(--stamp)] mr-1"></span><span id="place-display-name"></span></p>
                             <p id="place-display-type" class="text-xs text-[color:var(--ink-3)]"></p>
                         </div>
-                        <button type="button" data-action="clearPlaceInfo" class="text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] w-7 h-7" title="移除店家資訊"><svg class="ic"><use href="/icons.svg#x"/></svg></button>
+                        <button type="button" data-action="clearPlaceInfo" class="text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] w-7 h-7" title="移除店家資訊"><svg class="ic"><use href="public/icons.svg#x"/></svg></button>
                     </div>
                     <div id="place-details" class="space-y-1 text-sm text-[color:var(--ink-2)]"></div>
                 </div>
@@ -130,7 +132,7 @@
                         <button type="button" data-action="toggleVoice" class="flex items-center gap-2 text-sm" aria-label="切換模仿我的口吻">
                             <span id="voice-switch" class="switch"></span><span id="voice-status">未設定</span>
                         </button>
-                        <button type="button" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="/icons.svg#pen"/></svg>編輯範例</button>
+                        <button type="button" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>編輯範例</button>
                     </div>
                 </div>
                 <div>
@@ -148,7 +150,7 @@
                 <span>小計</span><span id="order-summary">3 道貼文</span>
             </div>
             <button id="generate-btn" data-action="generateCaption" class="btn-ink w-full py-4 text-lg flex items-center justify-center gap-3" disabled>
-                <span id="generate-label">送出點單</span><svg class="ic"><use href="/icons.svg#arrow-right"/></svg>
+                <span id="generate-label">送出點單</span><svg class="ic"><use href="public/icons.svg#arrow-right"/></svg>
             </button>
             <p id="generate-hint" class="text-center text-xs text-[color:var(--ink-3)] mt-2"></p>
         </div>
@@ -178,8 +180,8 @@
                 <p id="result-cost" class="text-xs text-white/50 mt-0.5 mono"></p>
             </div>
             <div class="flex gap-2">
-                <button id="copyall-btn" data-action="copyAll" class="pill"><svg class="ic"><use href="/icons.svg#copy"/></svg>全部複製</button>
-                <button id="regen-btn" data-action="generateCaption" class="pill"><svg class="ic"><use href="/icons.svg#rotate"/></svg>整單重做</button>
+                <button id="copyall-btn" data-action="copyAll" class="pill"><svg class="ic"><use href="public/icons.svg#copy"/></svg>全部複製</button>
+                <button id="regen-btn" data-action="generateCaption" class="pill"><svg class="ic"><use href="public/icons.svg#rotate"/></svg>整單重做</button>
             </div>
         </div>
         <div id="analysis-container" class="hidden mb-8 max-w-2xl"></div>
@@ -204,7 +206,7 @@
                     <button type="button" data-action="toggleKeyVisibility" class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="顯示/隱藏"><span id="key-eye"></span></button>
                 </div>
                 <p id="key-current" class="text-xs text-[color:var(--ink-3)] mt-2 mono hidden"></p>
-                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="inline-block text-xs mt-2 font-bold text-[color:var(--stamp)] hover:underline">到 Anthropic Console 取得 API Key <svg class="ic text-[10px]"><use href="/icons.svg#external"/></svg></a>
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="inline-block text-xs mt-2 font-bold text-[color:var(--stamp)] hover:underline">到 Anthropic Console 取得 API Key <svg class="ic text-[10px]"><use href="public/icons.svg#external"/></svg></a>
 
                 <hr class="rule">
                 <p class="sec-title mb-1">主廚（模型）</p>
@@ -226,7 +228,7 @@
                 <p class="text-xs text-[color:var(--ink-3)] mt-1">依官方牌價估算，實際以 Anthropic 帳單為準。</p>
 
                 <hr class="rule">
-                <p class="text-xs text-[color:var(--ink-2)] leading-relaxed"><svg class="ic mr-1"><use href="/icons.svg#shield"/></svg>Key 只存在這台裝置的瀏覽器。每次出單時隨請求送到本站伺服器、再轉給 Anthropic，伺服器不保存；用量計入你自己的 Anthropic 帳戶。</p>
+                <p class="text-xs text-[color:var(--ink-2)] leading-relaxed"><svg class="ic mr-1"><use href="public/icons.svg#shield"/></svg>Key 只存在這台裝置的瀏覽器。每次出單時隨請求送到本站伺服器、再轉給 Anthropic，伺服器不保存；用量計入你自己的 Anthropic 帳戶。</p>
 
                 <div class="flex gap-2 mt-5">
                     <button data-action="clearKey" id="clear-key-btn" class="btn-line px-3 py-2.5 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)] hidden">刪除 Key</button>
@@ -263,12 +265,12 @@
         <div class="modal-in paper-wrap w-full max-w-lg my-6" role="dialog" aria-modal="true" aria-labelledby="publish-title">
             <div class="paper">
                 <div class="flex items-center justify-between">
-                    <h2 id="publish-title" class="text-xl font-black"><svg class="ic mr-1 text-[#1877f2]"><use href="/icons.svg#facebook"/></svg>準備發文</h2>
-                    <button data-action="closePublish" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><svg class="ic text-lg"><use href="/icons.svg#x"/></svg></button>
+                    <h2 id="publish-title" class="text-xl font-black"><svg class="ic mr-1 text-[#1877f2]"><use href="public/icons.svg#facebook"/></svg>準備發文</h2>
+                    <button data-action="closePublish" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><svg class="ic text-lg"><use href="public/icons.svg#x"/></svg></button>
                 </div>
                 <hr class="rule-double">
 
-                <p class="sec-title mb-2"><svg class="ic mr-1"><use href="/icons.svg#crop"/></svg>照片比例 <span id="publish-photo-count" class="sec-hint"></span></p>
+                <p class="sec-title mb-2"><svg class="ic mr-1"><use href="public/icons.svg#crop"/></svg>照片比例 <span id="publish-photo-count" class="sec-hint"></span></p>
                 <div id="ratio-btns" class="ratio-btns mb-3"></div>
                 <div class="crop-stage"><canvas id="crop-canvas"></canvas></div>
                 <label id="crop-pos-wrap" class="flex items-center gap-3 mt-2 text-xs text-[color:var(--ink-2)]">
@@ -277,7 +279,7 @@
                 </label>
 
                 <hr class="rule">
-                <p class="sec-title mb-2"><svg class="ic mr-1"><use href="/icons.svg#a11y"/></svg>替代文字 <span class="sec-hint">貼到臉書照片的「編輯 → 替代文字」</span></p>
+                <p class="sec-title mb-2"><svg class="ic mr-1"><use href="public/icons.svg#a11y"/></svg>替代文字 <span class="sec-hint">貼到臉書照片的「編輯 → 替代文字」</span></p>
                 <div id="alt-list" class="space-y-2 text-sm"></div>
 
                 <hr class="rule">
@@ -288,9 +290,9 @@
                 <p id="publish-caption" class="text-sm whitespace-pre-wrap break-words bg-[color:var(--paper-2)] p-3 rounded max-h-48 overflow-y-auto"></p>
 
                 <div class="grid grid-cols-2 gap-2 mt-5">
-                    <button data-action="shareToFacebook" id="share-fb-btn" class="fb-btn py-3 text-sm col-span-2"><svg class="ic mr-1"><use href="/icons.svg#share"/></svg><span id="share-fb-label">分享到臉書</span></button>
-                    <button data-action="copyPublishText" class="btn-line py-2.5 text-sm"><svg class="ic mr-1"><use href="/icons.svg#copy"/></svg>複製文案</button>
-                    <button data-action="downloadPublishPhotos" class="btn-line py-2.5 text-sm"><svg class="ic mr-1"><use href="/icons.svg#download"/></svg>下載照片</button>
+                    <button data-action="shareToFacebook" id="share-fb-btn" class="fb-btn py-3 text-sm col-span-2"><svg class="ic mr-1"><use href="public/icons.svg#share"/></svg><span id="share-fb-label">分享到臉書</span></button>
+                    <button data-action="copyPublishText" class="btn-line py-2.5 text-sm"><svg class="ic mr-1"><use href="public/icons.svg#copy"/></svg>複製文案</button>
+                    <button data-action="downloadPublishPhotos" class="btn-line py-2.5 text-sm"><svg class="ic mr-1"><use href="public/icons.svg#download"/></svg>下載照片</button>
                 </div>
                 <p id="publish-hint" class="text-xs text-[color:var(--ink-3)] mt-3 leading-relaxed"></p>
             </div>
@@ -302,14 +304,14 @@
         <div class="modal-in paper-wrap w-full max-w-lg my-6" role="dialog" aria-modal="true" aria-labelledby="history-title">
             <div class="paper">
                 <div class="flex items-center justify-between">
-                    <h2 id="history-title" class="text-xl font-black"><svg class="ic mr-2 text-[color:var(--stamp)]"><use href="/icons.svg#receipt"/></svg>訂單紀錄</h2>
-                    <button data-action="closeHistoryModal" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><svg class="ic text-lg"><use href="/icons.svg#x"/></svg></button>
+                    <h2 id="history-title" class="text-xl font-black"><svg class="ic mr-2 text-[color:var(--stamp)]"><use href="public/icons.svg#receipt"/></svg>訂單紀錄</h2>
+                    <button data-action="closeHistoryModal" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><svg class="ic text-lg"><use href="public/icons.svg#x"/></svg></button>
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
                     <label class="text-sm flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="fav-only"> 只看有收藏的</label>
                     <div class="flex gap-2">
-                        <button data-action="exportHistory" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="/icons.svg#export"/></svg>匯出</button>
-                        <button data-action="importHistory" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="/icons.svg#import"/></svg>匯入</button>
+                        <button data-action="exportHistory" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="public/icons.svg#export"/></svg>匯出</button>
+                        <button data-action="importHistory" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="public/icons.svg#import"/></svg>匯入</button>
                     </div>
                 </div>
                 <input type="file" id="import-file" class="hidden" accept="application/json,.json">
@@ -317,7 +319,7 @@
                 <div id="history-container" class="max-h-[60vh] overflow-y-auto -mx-1 px-1"></div>
                 <hr class="rule">
                 <div class="flex justify-end gap-2">
-                    <button data-action="clearHistory" class="btn-line px-3 py-2 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]"><svg class="ic mr-1"><use href="/icons.svg#trash"/></svg>清除全部</button>
+                    <button data-action="clearHistory" class="btn-line px-3 py-2 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]"><svg class="ic mr-1"><use href="public/icons.svg#trash"/></svg>清除全部</button>
                     <button data-action="closeHistoryModal" class="btn-ink px-4 py-2 text-sm">關閉</button>
                 </div>
             </div>

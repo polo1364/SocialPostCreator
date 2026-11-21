@@ -1,5 +1,43 @@
-'use strict';
-// 貼文廚房前端。事件一律用 data-action 委派（不寫 inline onclick），以便啟用嚴格的 CSP。
+// 貼文廚房前端（純前端版，可直接放在 GitHub Pages）。
+// 瀏覽器直接拿使用者自己的 Key 呼叫 Claude；提示詞與流程在 kitchen.js。
+// 事件一律用 data-action 委派（不寫 inline onclick），以便啟用嚴格的 CSP。
+import * as K from './kitchen.js';
+
+// 官方 Anthropic SDK（瀏覽器版），第一次用到時才載入
+const SDK_URL = 'https://esm.sh/@anthropic-ai/sdk@1.11.0';
+let sdkPromise = null;
+function loadSdk() {
+    if (!sdkPromise) {
+        sdkPromise = import(SDK_URL).then(m => m.default || m.Anthropic).catch(() => {
+            sdkPromise = null;
+            throw new Error('無法載入 Claude 工具，請檢查網路後再試');
+        });
+    }
+    return sdkPromise;
+}
+
+// 呼叫 Claude 的共用包裝：錯誤一律轉成中文訊息，並把已花的費用記上
+async function withClaude(fn) {
+    const Anthropic = await loadSdk();
+    const client = K.createClient(Anthropic, state.apiKey);
+    try {
+        return await fn(client);
+    } catch (e) {
+        if (e && e.cost) addSpend(e.cost);
+        throw new Error(K.toUserError(e, Anthropic));
+    }
+}
+
+async function toBase64(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+}
+
+function imagePayload(blobs) {
+    return Promise.all(blobs.map(async b => ({ mediaType: ALLOWED_TYPES.includes(b.type) ? b.type : 'image/jpeg', data: await toBase64(b) })));
+}
 
 // ===== 常數 =====
 const MODELS = [
@@ -101,7 +139,7 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
-const ic = (name, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="/icons.svg#${name}"/></svg>`;
+const ic = (name, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="public/icons.svg#${name}"/></svg>`;
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -272,7 +310,7 @@ function updateDescCount() { $('desc-count').textContent = `${$('user-desc').val
 // ===== PWA =====
 function setupPwa() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(e => console.warn('service worker 註冊失敗', e));
+        navigator.serviceWorker.register('./sw.js').catch(e => console.warn('service worker 註冊失敗', e));
     }
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
@@ -297,7 +335,7 @@ actions.installApp = async () => {
 async function receiveSharedFiles() {
     const params = new URLSearchParams(location.search);
     if (!params.has('shared')) return;
-    history.replaceState(null, '', '/');
+    history.replaceState(null, '', location.pathname);
     if (!('caches' in window)) return;
     try {
         const cache = await caches.open('share-inbox');
@@ -415,10 +453,6 @@ actions.clearKey = () => {
     checkBtnState();
     toast('已刪除 API Key', 'info');
 };
-
-function apiHeaders(extra = {}, model = state.model) {
-    return { 'x-api-key': state.apiKey, 'x-model': model, ...extra };
-}
 
 function requireKey() {
     if (state.apiKey) return true;
@@ -659,14 +693,8 @@ async function searchPlace() {
     btn.disabled = true;
     btn.innerHTML = `${ic('spinner', 'spin mr-1')}查詢中`;
     try {
-        const res = await fetch('/api/search-place', {
-            method: 'POST',
-            headers: apiHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ placeName, location, placeType: state.placeType })
-        });
-        const data = await res.json().catch(() => ({}));
+        const data = await withClaude(client => K.searchPlace(client, { placeName, location, placeType: state.placeType, model: state.model }));
         addSpend(data.cost);
-        if (!res.ok) throw new Error(data.error || '查詢失敗');
         if (data.placeInfo && data.placeInfo.found) {
             state.placeInfo = data.placeInfo;
             displayPlaceInfo(data.placeInfo);
@@ -719,47 +747,8 @@ actions.clearPlaceInfo = () => {
 };
 
 // ===== 串流 =====
-async function readSse(res, onEvent) {
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-    for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf('\n\n')) > -1) {
-            const raw = buf.slice(0, idx);
-            buf = buf.slice(idx + 2);
-            let event = 'message', data = '';
-            for (const line of raw.split('\n')) {
-                if (line.startsWith('event:')) event = line.slice(6).trim();
-                else if (line.startsWith('data:')) data += line.slice(5).trim();
-            }
-            if (data) onEvent(event, JSON.parse(data));
-        }
-    }
-}
-
-async function streamCaption(formData, onPartial) {
-    const res = await fetch('/api/caption', { method: 'POST', headers: apiHeaders({ Accept: 'text/event-stream' }), body: formData });
-    const type = res.headers.get('Content-Type') || '';
-    if (!type.includes('text/event-stream')) {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.error) { addSpend(data.cost); throw new Error(data.error || `出單失敗（${res.status}）`); }
-        return data;
-    }
-    let final = null;
-    let failure = null;
-    await readSse(res, (event, data) => {
-        if (event === 'partial') onPartial(data);
-        else if (event === 'reset') onPartial({ analysis: null, captions: [] });
-        else if (event === 'done') final = data;
-        else if (event === 'error') { failure = data; addSpend(data.cost); }
-    });
-    if (failure) throw new Error(failure.error || '出單失敗');
-    if (!final) throw new Error('連線中斷，請重試');
-    return final;
+async function streamCaption(opts, onPartial) {
+    return withClaude(client => K.streamCaptions(client, { ...opts, model: state.model }, onPartial));
 }
 
 // ===== 出單 =====
@@ -782,13 +771,15 @@ function nextOrderNo() {
 
 function releaseOrder(o) { (o?.photoUrls || []).forEach(u => URL.revokeObjectURL(u)); }
 
-function commonFields(formData, o) {
-    formData.append('platform', o.platform);
-    if (o.language) formData.append('language', o.language);
-    if (activeVoice()) formData.append('voiceSamples', activeVoice());
-    if (activeHashtags()) formData.append('hashtags', activeHashtags());
-    if (o.context.placeInfo) formData.append('placeInfo', JSON.stringify(o.context.placeInfo));
-    formData.append('rating', o.context.rating || 0);
+function commonOpts(o) {
+    return {
+        platform: o.platform,
+        language: o.language || '',
+        voiceSamples: activeVoice(),
+        hashtags: activeHashtags(),
+        placeInfo: o.context.placeInfo || null,
+        rating: o.context.rating || 0
+    };
 }
 
 async function generateCaption() {
@@ -829,14 +820,10 @@ async function generateCaption() {
         };
         state.order = order;
 
-        const formData = new FormData();
-        images.forEach((b, i) => formData.append('images', b, `${i + 1}-${b.name || 'photo.jpg'}`));
-        formData.append('description', desc);
-        formData.append('styles', JSON.stringify(state.styles));
-        commonFields(formData, order);
+        const opts = { images: await imagePayload(images), description: desc, styles: state.styles, ...commonOpts(order) };
 
         let shown = false;
-        const final = await streamCaption(formData, partial => {
+        const final = await streamCaption(opts, partial => {
             if (state.order !== order) return;
             if (!shown && ((partial.captions || []).length || partial.analysis?.summary)) {
                 shown = true;
@@ -1089,27 +1076,22 @@ async function refineCaption(i, instruction) {
     item.pending = instruction;
     renderTicket(i);
     try {
-        const res = await fetch('/api/refine', {
-            method: 'POST',
-            headers: apiHeaders({ 'Content-Type': 'application/json' }, state.cheapRefine ? CHEAP_MODEL : state.model),
-            body: JSON.stringify({
-                caption: base.caption,
-                style: item.style,
-                instruction,
-                description: o.context?.description || '',
-                imageAnalysis: o.analysis,
-                placeInfo: o.context?.placeInfo || null,
-                rating: o.context?.rating || 0,
-                platform: o.platform,
-                language: o.language || '',
-                voiceSamples: activeVoice(),
-                hashtags: activeHashtags(),
-                history: historySteps
-            })
-        });
-        const data = await res.json().catch(() => ({}));
+        const data = await withClaude(client => K.refineCaption(client, {
+            model: state.cheapRefine ? CHEAP_MODEL : state.model,
+            caption: base.caption,
+            style: item.style,
+            instruction,
+            description: o.context?.description || '',
+            imageAnalysis: o.analysis,
+            placeInfo: o.context?.placeInfo || null,
+            rating: o.context?.rating || 0,
+            platform: o.platform,
+            language: o.language || '',
+            voiceSamples: activeVoice(),
+            hashtags: activeHashtags(),
+            history: historySteps
+        }));
         addSpend(data.cost);
-        if (!res.ok || data.error) throw new Error(data.error || `修改失敗（${res.status}）`);
         item.versions.push({ caption: data.caption, translation: data.translation || '', instruction, reply: data.reply });
         item.idx = item.versions.length - 1;
         saveOrder(o);
@@ -1133,12 +1115,13 @@ actions.redoTicket = async el => {
     const styleKey = STYLE_KEY_BY_NAME[item.style];
     if (!styleKey) return toast('這道的風格無法辨識，請用整單重做', 'error');
 
-    const formData = new FormData();
-    o.images.forEach((b, k) => formData.append('images', b, `${k + 1}-photo.jpg`));
-    formData.append('description', o.context?.description || '');
-    formData.append('redoStyle', styleKey);
-    formData.append('avoidCaption', item.versions[item.idx].caption);
-    commonFields(formData, o);
+    const opts = {
+        images: await imagePayload(o.images),
+        description: o.context?.description || '',
+        redoStyle: styleKey,
+        avoidCaption: item.versions[item.idx].caption,
+        ...commonOpts(o)
+    };
 
     const prevIdx = item.idx;
     item.versions.push({ caption: '', translation: '', instruction: '重做這道', reply: '重新出了一張新的' });
@@ -1146,7 +1129,7 @@ actions.redoTicket = async el => {
     item.streaming = true;
     renderTicket(i);
     try {
-        const final = await streamCaption(formData, partial => {
+        const final = await streamCaption(opts, partial => {
             const c = (partial.captions || [])[0];
             item.versions[item.idx].caption = c?.caption || '';
             item.versions[item.idx].translation = c?.translation || '';

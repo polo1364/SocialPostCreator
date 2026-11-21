@@ -2,6 +2,10 @@
 
 上傳照片「點單」，Claude 幫你「出單」社群貼文，還能像聊天一樣微調。
 
+**線上使用：** https://polo1364.github.io/SocialPostCreator/
+
+純前端網頁：瀏覽器直接用你自己的 Claude API Key 呼叫 Claude，Key 只存在你的瀏覽器、不經過任何伺服器。放在 GitHub Pages 就能用，不需要後端。
+
 ## 功能
 
 - 一次最多 5 張照片，自動轉正並調整到最適合辨識的解析度
@@ -16,19 +20,28 @@
 - 顯示每單與累計的估算費用
 - PWA：可加到手機主畫面，從相簿「分享」照片直接送進來
 
-## 本機執行
+## 本機預覽
 
 ```bash
 npm install
 npm start
 ```
 
-打開 http://localhost:3000 ，在右上角設定填入自己的 Claude API Key（到 [Anthropic Console](https://console.anthropic.com/settings/keys) 取得）。
+打開 http://localhost:3000 （或 http://localhost:3000/SocialPostCreator/ 模擬 GitHub Pages 子路徑），在右上角設定填入自己的 Claude API Key（到 [Anthropic Console](https://console.anthropic.com/settings/keys) 取得）。`server.js` 只是本機預覽用的靜態伺服器。
+
+## 程式結構
+
+- `index.html`：版面
+- `public/app.js`：畫面與互動
+- `public/kitchen.js`：提示詞、結構化輸出與呼叫 Claude 的流程（瀏覽器與 Node 共用）
+- `sw.js`、`manifest.webmanifest`：PWA
+
+所有路徑都是相對路徑，放在 GitHub Pages 的子路徑也能正常運作。
 
 ## 開發
 
 ```bash
-npm test            # 後端測試（不會呼叫真正的 Claude API）
+npm test            # 自動測試（不會呼叫真正的 Claude API）
 npm run build:css   # 修改 index.html 的 Tailwind class 後重新編譯 public/styles.css
 npm run build:icons # 重新產生 PWA 圖示
 npm run build:sprite # 重新產生 public/icons.svg（只含用到的圖示）
@@ -44,4 +57,4 @@ $env:ANTHROPIC_API_KEY="sk-ant-..."; npm run smoke
 
 可加 `$env:SMOKE_IMAGE="C:照片.jpg"` 用自己的照片。
 
-`public/styles.css` 是編譯後的檔案，已一併提交，部署時不需要額外建置。
+`public/styles.css`、`public/icons.svg` 是編譯後的檔案，已一併提交，GitHub Pages 不需要額外建置。
