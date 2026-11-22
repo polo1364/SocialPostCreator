@@ -11,7 +11,9 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" type="image/png" href="public/icons/icon-192.png">
     <link rel="apple-touch-icon" href="public/icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="貼文廚房">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,11 +25,22 @@
 </head>
 <body class="py-6 sm:py-8 px-4">
 
+    <!-- 離線提示 -->
+    <div id="offline-bar" class="hidden fixed top-0 inset-x-0 z-[55] bg-[color:var(--stamp)] text-white text-center text-sm font-bold py-1.5">
+        <svg class="ic mr-1"><use href="public/icons.svg#warn"/></svg>目前離線：可以整理照片和看訂單紀錄，出單需要網路
+    </div>
+
+    <!-- 新版本提示 -->
+    <div id="update-bar" class="hidden fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:max-w-sm z-[55] rounded-lg px-4 py-3 bg-[color:var(--paper)] shadow-2xl border-l-4 border-[color:var(--stamp)] flex items-center gap-3">
+        <span class="text-sm font-bold flex-1">貼文廚房有新版本</span>
+        <button data-action="applyUpdate" class="btn-ink px-3 py-1.5 text-xs">重新整理</button>
+    </div>
+
     <!-- 頂部 -->
     <nav class="max-w-5xl mx-auto flex items-center justify-between gap-3 mb-8">
         <div class="sign text-sm sm:text-base font-bold"><span class="lamp">●</span> 貼文廚房 <span class="hidden sm:inline opacity-60">POST KITCHEN</span></div>
         <div class="flex items-center gap-2">
-            <button id="install-btn" data-action="installApp" class="pill hidden" title="加到主畫面"><svg class="ic"><use href="public/icons.svg#phone"/></svg><span class="hidden sm:inline">安裝</span></button>
+            <button id="install-btn" data-action="installApp" class="pill hidden" title="安裝到手機或電腦"><svg class="ic"><use href="public/icons.svg#phone"/></svg><span class="hidden sm:inline">安裝</span></button>
             <button id="history-btn" data-action="showHistory" class="pill hidden" title="訂單紀錄">
                 <svg class="ic"><use href="public/icons.svg#receipt"/></svg><span id="history-count">0</span>
             </button>
@@ -321,6 +334,24 @@
                 <div class="flex justify-end gap-2">
                     <button data-action="clearHistory" class="btn-line px-3 py-2 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]"><svg class="ic mr-1"><use href="public/icons.svg#trash"/></svg>清除全部</button>
                     <button data-action="closeHistoryModal" class="btn-ink px-4 py-2 text-sm">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 安裝說明 -->
+    <div id="install-modal" data-backdrop="closeInstall" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="modal-in paper-wrap w-full max-w-md my-6" role="dialog" aria-modal="true" aria-labelledby="install-title">
+            <div class="paper">
+                <div class="flex items-center justify-between">
+                    <h2 id="install-title" class="text-xl font-black"><svg class="ic mr-1"><use href="public/icons.svg#phone"/></svg>安裝貼文廚房</h2>
+                    <button data-action="closeInstall" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉"><svg class="ic text-lg"><use href="public/icons.svg#x"/></svg></button>
+                </div>
+                <hr class="rule-double">
+                <p class="text-sm text-[color:var(--ink-2)] mb-3">安裝後會出現在主畫面，用起來像 App：全螢幕開啟、沒網路也能打開，Android 還能從相簿直接「分享」照片進來。</p>
+                <div id="install-steps" class="space-y-3 text-sm"></div>
+                <div class="flex justify-end mt-5">
+                    <button data-action="closeInstall" class="btn-ink px-5 py-2.5 text-sm">知道了</button>
                 </div>
             </div>
         </div>

@@ -240,3 +240,6 @@ kbd { font-family: var(--mono); font-size: .7rem; padding: .05rem .35rem; border
 .fb-btn { background: #1877f2; color: #fff; font-weight: 900; border-radius: .4rem; transition: background .15s; }
 .fb-btn:hover { background: #0f63d6; }
 input[type=range] { accent-color: var(--ink); }
+
+/* 自訂了 display 的元件，加上 hidden 時仍要隱藏（app.css 在 Tailwind 之後載入會蓋掉 .hidden） */
+.pill.hidden, .thread.hidden, .chat.hidden, .seg.hidden { display: none; }

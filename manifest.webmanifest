@@ -47,5 +47,29 @@
       ]
     }
   },
-  "id": "./"
+  "id": "./",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "categories": [
+    "social",
+    "productivity",
+    "food"
+  ],
+  "shortcuts": [
+    {
+      "name": "新點單",
+      "short_name": "新點單",
+      "url": "./?source=shortcut",
+      "icons": [
+        {
+          "src": "public/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

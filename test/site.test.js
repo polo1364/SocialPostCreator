@@ -55,3 +55,20 @@ test('manifest 與 service worker 用相對路徑', () => {
     const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
     assert.doesNotMatch(sw, /'\/(public|styles|app)/);
 });
+
+test('PWA 可安裝的條件都齊全', () => {
+    const m = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.webmanifest'), 'utf8'));
+    assert.ok(m.name && m.short_name, '要有名稱');
+    assert.equal(m.display, 'standalone');
+    assert.ok(m.icons.some(i => i.sizes === '192x192'), '要有 192 圖示');
+    assert.ok(m.icons.some(i => i.sizes === '512x512' && i.purpose !== 'maskable'), '要有 512 圖示');
+    assert.ok(m.icons.some(i => i.purpose === 'maskable'), '要有 maskable 圖示');
+    for (const i of m.icons) assert.ok(fs.existsSync(path.join(__dirname, '..', i.src)), `圖示檔不存在：${i.src}`);
+    const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+    assert.match(sw, /addEventListener\('fetch'/, 'service worker 要處理 fetch');
+    assert.match(sw, /SKIP_WAITING/, '要支援「重新整理」切換新版本');
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    assert.match(html, /rel="manifest"/);
+    assert.match(html, /rel="apple-touch-icon"/);
+    assert.match(html, /id="install-modal"/);
+});
