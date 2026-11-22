@@ -4,7 +4,7 @@
 // - Claude API 一律不經過快取
 // - 分享目標：接住從相簿「分享」過來的照片，暫存後導回首頁
 // - 新版本：安裝好後先等待，使用者按「重新整理」才切換（避免出單到一半被換掉）
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL_CACHE = `shell-${VERSION}`;
 const CDN_CACHE = 'cdn-v1';
 const SHARE_CACHE = 'share-inbox';
@@ -14,7 +14,8 @@ const SHELL = ['./', 'public/styles.css', 'public/app.css', 'public/app.js', 'pu
 const CDN_HOSTS = ['esm.sh', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', event => {
-    event.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
+    // cache: 'reload' → 直接向伺服器拿最新檔，不吃瀏覽器的 HTTP 快取
+    event.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).catch(() => {}));
 });
 
 self.addEventListener('message', event => {
@@ -48,7 +49,10 @@ self.addEventListener('fetch', event => {
     const key = req.mode === 'navigate' ? BASE : url.href.split('?')[0];
     event.respondWith((async () => {
         try {
-            const res = await fetch(req);
+            // GitHub Pages 讓瀏覽器快取 10 分鐘；改成每次向伺服器確認（沒變就回 304，很快），避免新舊檔案混用
+            let fresh;
+            try { fresh = new Request(req, { cache: 'no-cache' }); } catch (e) { fresh = req; }
+            const res = await fetch(fresh);
             if (res.ok && SHELL.includes(key)) {
                 const cache = await caches.open(SHELL_CACHE);
                 cache.put(key, res.clone());
