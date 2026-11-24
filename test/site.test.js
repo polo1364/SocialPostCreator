@@ -104,6 +104,17 @@ test('service worker 的離線清單裡每個檔案都存在', () => {
     for (const f of js) assert.ok(list.includes(`public/js/${f}`), `public/js/${f} 沒有放進離線清單`);
 });
 
+test('前端每個 JS 檔都沒有語法錯誤', () => {
+    const { execFileSync } = require('child_process');
+    const dir = path.join(__dirname, '..', 'public');
+    const files = ['app.js', 'kitchen.js', ...fs.readdirSync(path.join(dir, 'js')).map(f => `js/${f}`)];
+    for (const f of files) {
+        try { execFileSync(process.execPath, ['--check', path.join(dir, f)], { stdio: 'pipe' }); }
+        catch (e) { assert.fail(`public/${f} 有語法錯誤：\n${e.stderr}`); }
+    }
+    execFileSync(process.execPath, ['--check', path.join(__dirname, '..', 'sw.js')], { stdio: 'pipe' });
+});
+
 test('base.js 不 import 任何東西（必須最先載入）', () => {
     const code = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'base.js'), 'utf8');
     assert.doesNotMatch(code, /^import /m);

@@ -23,7 +23,7 @@ export function restoreVoices() {
     state.voiceId = state.voices.some(v => v.id === id) ? id : '';
 }
 
-function saveVoices() {
+export function saveVoices() {
     save(STORAGE_KEYS.voices, state.voices);
     save(STORAGE_KEYS.voiceId, state.voiceId);
 }

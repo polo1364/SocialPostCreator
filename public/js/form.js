@@ -3,6 +3,7 @@ import * as K from '../kitchen.js';
 import { $, ALLOWED_TYPES, DEFAULT_PLATFORM, DRAFT_PHOTOS, LANGUAGES, MAX_BYTES, MAX_COPIES, MAX_EDGE, MAX_PHOTOS, MAX_STYLES, PLATFORMS, RATING_TEXTS, STORAGE_KEYS, STORE_EDGE, actions, addSpend, allStyles, escapeHtml, fmtUsd, ic, idbDelete, idbGet, idbPut, load, remove, save, saveInputs, state, toast, withClaude } from './core.js';
 import { requireKey } from './settings.js';
 import { checkBtnState } from './order.js';
+import { renderVoiceStatus, saveVoices } from './profiles.js';
 
 // ===== 點單選項 =====
 export function updateDescCount() { $('desc-count').textContent = `${$('user-desc').value.length}/1000`; }
@@ -319,11 +320,10 @@ export function displayPlaceInfo(info) {
     $('place-info-container').classList.remove('hidden');
 }
 
-// ===== 清除點單：照片、備註、店家、評分；平台、品項、Hashtag、外語等設定保留 =====
+// ===== 清除點單：自己填的全部清掉、選項回到預設（自訂品項、口吻、套餐本身保留） =====
+const DEFAULT_STYLES = ['humorous', 'warm', 'foodie'];
 actions.clearOrderForm = () => {
-    const hasContent = state.files.length || $("user-desc").value.trim() || state.placeInfo || $("place-name").value.trim() || state.rating;
-    if (!hasContent) return toast("點單已經是空的", "info");
-    if (!confirm("要清掉照片、備註、店家和評分嗎？（平台、品項等設定會保留）")) return;
+    if (!confirm("要清除全部填寫的內容嗎？\n照片、備註、店家、評分、平台、品項、口吻、Hashtag、外語都會回到預設。")) return;
     state.files.forEach(f => URL.revokeObjectURL(f.url));
     state.files = [];
     renderPhotos();
@@ -332,9 +332,23 @@ actions.clearOrderForm = () => {
     updateDescCount();
     state.rating = 0;
     renderStars();
+    state.platform = DEFAULT_PLATFORM;
+    renderPlatforms();
+    state.styleMode = "multi";
+    state.copies = 1;
+    state.styles = [...DEFAULT_STYLES];
+    renderStyles();
+    $("hashtags-input").value = "";
+    state.hashtags = "";
+    state.language = "";
+    renderLanguages();
+    state.voiceId = "";
+    saveVoices();
+    renderVoiceStatus();
+    setPlaceType("store", false);
     actions.clearPlaceInfo();
     checkBtnState();
-    toast("已清除點單", "success");
+    toast("已全部清除", "success");
     $("order-form").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
