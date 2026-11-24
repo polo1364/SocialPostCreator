@@ -22,11 +22,12 @@ test('出單請求：基本組裝', () => {
     assert.match(prompt, /translation 一律填空字串/);
 });
 
-test('出單請求：沒有照片會丟錯、風格不足 3 種用預設、Haiku 不開備援', () => {
+test('出單請求：沒有照片會丟錯、單選一道只寫一則、Haiku 不開備援', () => {
     assert.throws(() => K.buildCaptionRequest({ images: [] }), /照片/);
-    const { params } = K.buildCaptionRequest({ images: [img], styles: ['humorous'], model: 'claude-haiku-5-5' });
+    const { params, styleCount } = K.buildCaptionRequest({ images: [img], styles: ['humorous'], model: 'claude-haiku-5-5' });
     assert.equal(params.betas, undefined);
-    assert.match(params.messages[0].content.at(-1).text, /3 則風格各異/);
+    assert.equal(styleCount, 1);
+    assert.match(params.messages[0].content.at(-1).text, /創作 一則貼文/);
     const unknown = K.buildCaptionRequest({ images: [img], model: 'gpt-4' });
     assert.equal(unknown.model, 'claude-sonnet-5-5');
 });
@@ -164,4 +165,35 @@ test('店家搜尋：pause_turn 會續跑，費用會加總', async () => {
     assert.equal(r.placeInfo.name, '小日子');
     assert.equal(r.cost.usd, 0.03);
     await assert.rejects(K.searchPlace(client, { placeName: ' ' }), /名稱/);
+});
+
+test('品項：單選可出多份、複選上限 6 道、沒選就給預設', () => {
+    const one = K.resolveStyles({ styles: ['warm'], copies: 3 });
+    assert.deepEqual(one.keys, ['warm', 'warm', 'warm']);
+    assert.deepEqual(K.resolveStyles({ styles: ['warm'], copies: 9 }).keys.length, 3);
+    assert.deepEqual(K.resolveStyles({ styles: ['warm', 'foodie'], copies: 3 }).keys, ['warm', 'foodie']);
+    const many = ['humorous', 'warm', 'foodie', 'literary', 'energetic', 'minimalist', 'storytelling', 'trendy'];
+    assert.equal(K.resolveStyles({ styles: many }).keys.length, 6);
+    assert.deepEqual(K.resolveStyles({ styles: [] }).keys, ['humorous']);
+    assert.deepEqual(K.resolveStyles({ styles: ['warm', 'warm'] }).keys, ['warm']);
+    const { params, styleCount } = K.buildCaptionRequest({ images: [img], styles: ['roast'], copies: 2 });
+    assert.equal(styleCount, 2);
+    assert.match(params.messages[0].content.at(-1).text, /2 則都是「毒舌吐槽」風格、但切入角度與寫法都明顯不同/);
+});
+
+test('品項：自訂風格會帶進提示詞，格式不對的會被過濾', () => {
+    const customStyles = {
+        'custom-1': { name: '阿嬤碎念風', emoji: '👵', description: '像阿嬤碎碎念，句尾加「啦」' },
+        'bad-key': { name: '不合法' },
+        'custom-2': { name: '' }
+    };
+    const clean = K.sanitizeCustomStyles(customStyles);
+    assert.deepEqual(Object.keys(clean), ['custom-1']);
+    const { params } = K.buildCaptionRequest({ images: [img], styles: ['custom-1', 'warm', 'bad-key'], customStyles });
+    const prompt = params.messages[0].content.at(-1).text;
+    assert.match(prompt, /【阿嬤碎念風】像阿嬤碎碎念，句尾加「啦」/);
+    assert.match(prompt, /2 則風格各異/);
+    assert.doesNotMatch(prompt, /不合法/);
+    const redo = K.buildCaptionRequest({ images: [img], redoStyle: 'custom-1', customStyles, avoidCaption: '舊的' });
+    assert.match(redo.params.messages[0].content.at(-1).text, /阿嬤碎念風/);
 });

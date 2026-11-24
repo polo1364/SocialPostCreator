@@ -147,8 +147,45 @@ export const STYLE_DEFINITIONS = {
     energetic: { name: '活力熱情', description: '用充滿活力、熱情奔放的語調，帶動氣氛和正能量', emoji: '🎉💪🔥' },
     minimalist: { name: '簡約俐落', description: '用簡短、有力的句子，直接表達重點，不囉嗦', emoji: '✓💯👌' },
     storytelling: { name: '故事敘述', description: '用說故事的方式，娓娓道來這次的體驗和感受', emoji: '📝🎬💭' },
-    trendy: { name: '潮流網紅', description: '用時下流行的網路用語和梗，貼近年輕人的說話方式', emoji: '🔥💅✨' }
+    trendy: { name: '潮流網紅', description: '用時下流行的網路用語和梗，貼近年輕人的說話方式', emoji: '🔥💅✨' },
+    roast: { name: '毒舌吐槽', description: '犀利又好笑的吐槽口吻，嘴上嫌棄但其實喜歡，不人身攻擊也不惡意', emoji: '😏🙄🤣' },
+    review: { name: '開箱評測', description: '像部落客開箱，條列重點、優缺點、價格與 CP 值，最後給個人評分', emoji: '🔍📝⭐' },
+    travel: { name: '旅遊日記', description: '像旅行日記，記錄行程、交通、當下心情與途中的小發現', emoji: '✈️🗺️📸' },
+    retro: { name: '懷舊復古', description: '帶點懷舊情懷，連結童年回憶或老時光的味道', emoji: '📻🎞️🕰️' },
+    oneliner: { name: '一句話', description: '只用一到兩句話，短而有記憶點，適合當圖說', emoji: '💬✨' },
+    elder: { name: '長輩圖風', description: '模仿長輩圖的祝福語氣，早安、平安、正能量滿滿，帶點幽默', emoji: '🌸🙏☀️' }
 };
+
+export const MAX_STYLES = 6;
+export const MAX_COPIES = 3;
+
+// 使用者自訂的品項：key 一律以 custom- 開頭，名稱與說明有長度上限，避免塞進奇怪的長文
+export function sanitizeCustomStyles(custom) {
+    const out = {};
+    if (!custom || typeof custom !== 'object') return out;
+    for (const [key, v] of Object.entries(custom).slice(0, 20)) {
+        if (!/^custom-[\w-]{1,40}$/.test(key) || !v || typeof v !== 'object') continue;
+        const name = String(v.name || '').trim().slice(0, 12);
+        if (!name) continue;
+        out[key] = {
+            name,
+            description: String(v.description || '').trim().slice(0, 120) || `用「${name}」的風格來寫`,
+            emoji: String(v.emoji || '').trim().slice(0, 4) || '✍️'
+        };
+    }
+    return out;
+}
+
+// 決定這次要寫哪些風格：可單選（1 道，可出多份）或複選（1–6 道）
+export function resolveStyles({ styles, copies, redoStyle, customStyles } = {}) {
+    const all = { ...STYLE_DEFINITIONS, ...sanitizeCustomStyles(customStyles) };
+    if (redoStyle && all[redoStyle]) return { keys: [redoStyle], all };
+    const valid = [...new Set(Array.isArray(styles) ? styles.filter(k => all[k]) : [])].slice(0, MAX_STYLES);
+    if (!valid.length) return { keys: ['humorous'], all };
+    const n = Math.min(Math.max(parseInt(copies, 10) || 1, 1), MAX_COPIES);
+    if (valid.length === 1 && n > 1) return { keys: Array(n).fill(valid[0]), all };
+    return { keys: valid, all };
+}
 
 export const PLATFORMS = {
     general: { name: '不指定', length: '每則約五十到兩百字', rules: '一般社群貼文寫法，適當換行。' },
@@ -315,26 +352,22 @@ export function buildCaptionRequest(opts) {
     const language = resolveLanguage(opts.language);
     const userDescription = String(opts.description || (multi ? '這組照片' : '這張照片')).trim().slice(0, 1000);
     const rating = parseInt(opts.rating, 10) || 0;
-    const redoStyle = STYLE_DEFINITIONS[opts.redoStyle] ? opts.redoStyle : null;
+    const { keys: stylesToUse, all: styleDefs } = resolveStyles(opts);
+    const redoStyle = opts.redoStyle && styleDefs[opts.redoStyle] ? opts.redoStyle : null;
     const avoidCaption = typeof opts.avoidCaption === 'string' ? opts.avoidCaption.slice(0, 2000) : '';
-
-    let stylesToUse;
-    if (redoStyle) {
-        stylesToUse = [redoStyle];
-    } else {
-        const valid = Array.isArray(opts.styles) ? opts.styles.filter(s => STYLE_DEFINITIONS[s]) : [];
-        stylesToUse = valid.length >= 3 ? valid.slice(0, 5) : ['humorous', 'warm', 'foodie'];
-    }
+    const sameStyle = stylesToUse.length > 1 && stylesToUse.every(k => k === stylesToUse[0]);
 
     const styleRequirements = stylesToUse.map((key, i) => {
-        const s = STYLE_DEFINITIONS[key];
+        const s = styleDefs[key];
         return `${i + 1}. 【${s.name}】${s.description}，可使用 ${s.emoji} 等相關表情`;
     }).join('\n');
 
     const photoIntro = multi
         ? `以下共有 ${images.length} 張照片（已標上「照片 1」到「照片 ${images.length}」），來自同一次經驗。請把它們當成一組來看，貼文可以串起多張照片的內容（例如餐點、環境、店外觀），但不要逐張流水帳。`
         : '觀察這張圖片。';
-    const countText = stylesToUse.length === 1 ? '一則貼文' : `${stylesToUse.length} 則風格各異的貼文`;
+    const countText = stylesToUse.length === 1 ? '一則貼文'
+        : sameStyle ? `${stylesToUse.length} 則都是「${styleDefs[stylesToUse[0]].name}」風格、但切入角度與寫法都明顯不同的貼文`
+        : `${stylesToUse.length} 則風格各異的貼文`;
     const redoText = redoStyle && avoidCaption
         ? `\n【這次是重做】下面是上一版，請寫一則角度、開頭、句型都明顯不同的新版本：\n<previous_caption>\n${avoidCaption}\n</previous_caption>\n`
         : '';
@@ -385,7 +418,7 @@ ${buildTranslationContext(language)}`;
             ]
         }]
     });
-    return { params, model, platform, language, imageCount: images.length };
+    return { params, model, platform, language, imageCount: images.length, styleCount: stylesToUse.length };
 }
 
 // 出單（串流）。onPartial({ analysis, captions }) 會在每次有新文字時被呼叫

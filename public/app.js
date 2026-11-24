@@ -56,9 +56,25 @@ const STYLES = {
     energetic: { name: '活力熱情', emoji: '🎉', tag: '加辣' },
     minimalist: { name: '簡約俐落', emoji: '✓', tag: '小份' },
     storytelling: { name: '故事敘述', emoji: '📝', tag: '慢燉' },
-    trendy: { name: '潮流網紅', emoji: '💅', tag: '新品' }
+    trendy: { name: '潮流網紅', emoji: '💅', tag: '新品' },
+    roast: { name: '毒舌吐槽', emoji: '😏', tag: '重口味' },
+    review: { name: '開箱評測', emoji: '🔍', tag: '評分' },
+    travel: { name: '旅遊日記', emoji: '✈️', tag: '外帶' },
+    retro: { name: '懷舊復古', emoji: '📻', tag: '古早味' },
+    oneliner: { name: '一句話', emoji: '💬', tag: '一口' },
+    elder: { name: '長輩圖風', emoji: '🌸', tag: '早安' }
 };
-const STYLE_KEY_BY_NAME = Object.fromEntries(Object.entries(STYLES).map(([k, s]) => [s.name, k]));
+const MAX_STYLES = 6;
+const MAX_COPIES = 3;
+
+// 內建＋自訂品項
+function allStyles() {
+    const custom = Object.fromEntries(Object.entries(state.customStyles || {}).map(([k, v]) => [k, { name: v.name, emoji: v.emoji || '✍️', tag: '自訂', custom: true }]));
+    return { ...STYLES, ...custom };
+}
+function styleKeyByName(name) {
+    return Object.entries(allStyles()).find(([, v]) => v.name === name)?.[0] || null;
+}
 
 const PLATFORMS = {
     facebook: { name: '臉書', icon: 'facebook', hint: '完整有故事性，像跟朋友分享；Hashtag 0–3 個' },
@@ -90,6 +106,9 @@ const STORAGE_KEYS = {
     rate: 'post_creator_rate',
     description: 'post_creator_description',
     styles: 'post_creator_styles',
+    styleMode: 'post_creator_style_mode',
+    copies: 'post_creator_copies',
+    customStyles: 'post_creator_custom_styles',
     rating: 'post_creator_rating',
     platform: 'post_creator_platform_v2',
     voice: 'post_creator_voice',
@@ -127,6 +146,9 @@ const state = {
     placeInfo: null,
     placeType: 'store',
     styles: ['humorous', 'warm', 'foodie'],
+    styleMode: 'multi', // single：單選一道、可出多份；multi：複選 1–6 道
+    copies: 1,
+    customStyles: {},
     rating: 0,
     platform: DEFAULT_PLATFORM,
     voice: '',
@@ -196,6 +218,8 @@ const idbDelete = key => idbRun('readwrite', s => s.delete(key)).catch(() => {})
 function saveInputs() {
     save(STORAGE_KEYS.description, $('user-desc').value);
     save(STORAGE_KEYS.styles, state.styles);
+    save(STORAGE_KEYS.styleMode, state.styleMode);
+    save(STORAGE_KEYS.copies, state.copies);
     save(STORAGE_KEYS.rating, state.rating);
     save(STORAGE_KEYS.platform, state.platform);
     save(STORAGE_KEYS.hashtags, $('hashtags-input').value);
@@ -217,10 +241,14 @@ function restoreInputs() {
     ['gemini_api_key', 'post_creator_access', 'post_creator_cred_mode', 'post_creator_platform'].forEach(remove);
 
     $('user-desc').value = load(STORAGE_KEYS.description, '') || '';
+    const custom = load(STORAGE_KEYS.customStyles, {});
+    state.customStyles = custom && typeof custom === 'object' ? custom : {};
+    state.styleMode = load(STORAGE_KEYS.styleMode, 'multi') === 'single' ? 'single' : 'multi';
+    state.copies = Math.min(Math.max(Number(load(STORAGE_KEYS.copies, 1)) || 1, 1), MAX_COPIES);
     const styles = load(STORAGE_KEYS.styles);
     if (Array.isArray(styles)) {
-        const valid = styles.filter(s => STYLES[s]).slice(0, 5);
-        if (valid.length >= 3) state.styles = valid;
+        const valid = styles.filter(s => allStyles()[s]).slice(0, MAX_STYLES);
+        if (valid.length >= 1) state.styles = valid;
     }
     const r = Number(load(STORAGE_KEYS.rating, 0));
     state.rating = r >= 0 && r <= 5 ? r : 0;
@@ -289,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); searchPlace(); }
     }));
     $('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+    $('custom-style-name').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) actions.saveCustomStyle(); });
     $('voice-input').addEventListener('input', () => {
         $('voice-count').textContent = `${$('voice-input').value.length}/3000`;
         save(STORAGE_KEYS.voiceDraft, $('voice-input').value);
@@ -310,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('include-translation').addEventListener('change', renderPublishCaption);
 
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { closeKeyModal(); closeHistoryModal(); closeVoiceModal(); closePublish(); closeInstall(); }
+        if (e.key === 'Escape') { closeKeyModal(); closeHistoryModal(); closeVoiceModal(); closePublish(); closeInstall(); closeCustomStyle(); }
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !$('generate-btn').disabled) generateCaption();
     });
     document.addEventListener('paste', e => {
@@ -609,31 +638,103 @@ function renderLanguages() {
 actions.setLanguage = el => { state.language = el.dataset.v; renderLanguages(); saveInputs(); };
 
 function renderStyles() {
-    $('style-chips').innerHTML = Object.entries(STYLES).map(([key, s]) => {
+    const single = state.styleMode === 'single';
+    if (single && state.styles.length > 1) state.styles = state.styles.slice(0, 1);
+    $('mode-single').classList.toggle('active', single);
+    $('mode-multi').classList.toggle('active', !single);
+    $('copies-wrap').classList.toggle('hidden', !single);
+    $('copies-chips').innerHTML = [1, 2, 3].map(n => `<button type="button" class="${n === state.copies ? 'active' : ''}" data-action="setCopies" data-v="${n}">${n}</button>`).join('');
+    $('style-chips').innerHTML = Object.entries(allStyles()).map(([key, st]) => {
         const on = state.styles.includes(key);
+        const qty = single ? `×${state.copies}` : '×1';
         return `
-        <button type="button" class="menu-item ${on ? 'selected' : ''}" data-action="toggleStyle" data-v="${key}" aria-pressed="${on}">
-            <span class="box">${ic('check')}</span>
-            <span class="name">${s.name}</span><span>${s.emoji}</span>
-            <span class="leader"></span>
-            <span class="tag">${on ? '×1' : s.tag}</span>
-        </button>`;
+        <div class="flex items-center">
+            <button type="button" class="menu-item ${on ? 'selected' : ''}" data-action="toggleStyle" data-v="${key}" aria-pressed="${on}" role="${single ? 'radio' : 'checkbox'}">
+                <span class="box ${single ? '!rounded-full' : ''}">${ic('check')}</span>
+                <span class="name">${escapeHtml(st.name)}</span><span>${escapeHtml(st.emoji)}</span>
+                <span class="leader"></span>
+                <span class="tag">${on ? qty : escapeHtml(st.tag)}</span>
+            </button>
+            ${st.custom ? `<button type="button" data-action="deleteCustomStyle" data-v="${key}" class="w-7 h-7 shrink-0 text-[color:var(--ink-3)] hover:text-[color:var(--stamp)]" title="刪除這個自訂品項">${ic('x')}</button>` : ''}
+        </div>`;
     }).join('');
-    $('style-count').textContent = state.styles.length;
-    $('order-summary').textContent = `${state.styles.length} 道貼文`;
+    const count = single ? state.copies : state.styles.length;
+    $('style-hint').textContent = single ? '選 1 道，可出 1–3 份不同寫法' : `選 1–${MAX_STYLES} 道 · ${state.styles.length}/${MAX_STYLES}`;
+    $('order-summary').textContent = `${count} 張貼文`;
 }
+
+actions.setStyleMode = el => {
+    state.styleMode = el.dataset.v === 'single' ? 'single' : 'multi';
+    renderStyles();
+    saveInputs();
+};
+
+actions.setCopies = el => {
+    state.copies = Math.min(Math.max(Number(el.dataset.v) || 1, 1), MAX_COPIES);
+    renderStyles();
+    saveInputs();
+};
+
 actions.toggleStyle = el => {
     const key = el.dataset.v;
-    const i = state.styles.indexOf(key);
-    if (i > -1) {
-        if (state.styles.length <= 3) return toast('至少要點 3 道', 'error');
-        state.styles.splice(i, 1);
+    if (state.styleMode === 'single') {
+        state.styles = [key];
     } else {
-        if (state.styles.length >= 5) return toast('最多點 5 道', 'error');
-        state.styles.push(key);
+        const i = state.styles.indexOf(key);
+        if (i > -1) {
+            if (state.styles.length <= 1) return toast('至少要點 1 道', 'error');
+            state.styles.splice(i, 1);
+        } else {
+            if (state.styles.length >= MAX_STYLES) return toast(`最多點 ${MAX_STYLES} 道`, 'error');
+            state.styles.push(key);
+        }
     }
     renderStyles();
     checkBtnState();
+    saveInputs();
+};
+
+// 自訂品項
+function showCustomStyle() {
+    $('custom-style-name').value = '';
+    $('custom-style-emoji').value = '';
+    $('custom-style-desc').value = '';
+    $('custom-style-modal').classList.remove('hidden');
+    setTimeout(() => $('custom-style-name').focus(), 50);
+}
+actions.showCustomStyle = showCustomStyle;
+function closeCustomStyle() { $('custom-style-modal').classList.add('hidden'); }
+actions.closeCustomStyle = closeCustomStyle;
+
+actions.saveCustomStyle = () => {
+    const name = $('custom-style-name').value.trim().slice(0, 12);
+    if (!name) return toast('幫這個品項取個名字', 'error');
+    if (Object.values(allStyles()).some(st => st.name === name)) return toast('菜單上已經有這個名字了', 'error');
+    if (Object.keys(state.customStyles).length >= 20) return toast('自訂品項最多 20 個', 'error');
+    const key = `custom-${Date.now()}`;
+    state.customStyles[key] = {
+        name,
+        emoji: $('custom-style-emoji').value.trim().slice(0, 4) || '✍️',
+        description: $('custom-style-desc').value.trim().slice(0, 120)
+    };
+    save(STORAGE_KEYS.customStyles, state.customStyles);
+    if (state.styleMode === 'single') state.styles = [key];
+    else if (state.styles.length < MAX_STYLES) state.styles.push(key);
+    closeCustomStyle();
+    renderStyles();
+    saveInputs();
+    toast(`已加入「${name}」`, 'success');
+};
+
+actions.deleteCustomStyle = el => {
+    const key = el.dataset.v;
+    const st = state.customStyles[key];
+    if (!st || !confirm(`刪除自訂品項「${st.name}」？`)) return;
+    delete state.customStyles[key];
+    save(STORAGE_KEYS.customStyles, state.customStyles);
+    state.styles = state.styles.filter(k => k !== key);
+    if (!state.styles.length) state.styles = ['humorous'];
+    renderStyles();
     saveInputs();
 };
 
@@ -895,7 +996,8 @@ function commonOpts(o) {
         voiceSamples: activeVoice(),
         hashtags: activeHashtags(),
         placeInfo: o.context.placeInfo || null,
-        rating: o.context.rating || 0
+        rating: o.context.rating || 0,
+        customStyles: state.customStyles
     };
 }
 
@@ -939,7 +1041,13 @@ async function generateCaption() {
         rememberOrder(order, true);
         persistPhotos(order);
 
-        const opts = { images: await imagePayload(images), description: desc, styles: state.styles, ...commonOpts(order) };
+        const opts = {
+            images: await imagePayload(images),
+            description: desc,
+            styles: state.styles,
+            copies: state.styleMode === 'single' ? state.copies : 1,
+            ...commonOpts(order)
+        };
 
         let shown = false;
         const final = await streamCaption(opts, partial => {
@@ -1101,7 +1209,7 @@ function renderTicket(i) {
     const keepInput = wrap.querySelector('.chat-input')?.value || getChatDraft(i);
     const v = item.versions[item.idx];
     const total = item.versions.length;
-    const styleEntry = Object.values(STYLES).find(s => s.name === item.style);
+    const styleEntry = Object.values(allStyles()).find(st => st.name === item.style);
     const locked = item.busy || item.streaming || o.streaming;
     const photo = o.photoUrls && o.photoUrls[0];
     const hasImages = !!(o.images && o.images.length);
@@ -1247,7 +1355,7 @@ actions.redoTicket = async el => {
     const item = o?.items[i];
     if (!item || item.busy || item.streaming || !o.images?.length) return;
     if (!requireKey()) return;
-    const styleKey = STYLE_KEY_BY_NAME[item.style];
+    const styleKey = styleKeyByName(item.style);
     if (!styleKey) return toast('這道的風格無法辨識，請用整單重做', 'error');
 
     const opts = {

@@ -132,8 +132,19 @@
 
             <!-- 06 風格 -->
             <section>
-                <div class="sec-head"><span class="sec-no">06</span><span class="sec-title">品項（貼文風格）</span><span class="sec-hint">選 3–5 道 · <span id="style-count">3</span>/5</span></div>
+                <div class="sec-head"><span class="sec-no">06</span><span class="sec-title">品項（貼文風格）</span><span id="style-hint" class="sec-hint"></span></div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div class="seg" role="tablist" aria-label="點法">
+                        <button type="button" id="mode-single" data-action="setStyleMode" data-v="single">單選</button>
+                        <button type="button" id="mode-multi" data-action="setStyleMode" data-v="multi">複選</button>
+                    </div>
+                    <div id="copies-wrap" class="hidden flex items-center gap-2 text-sm">
+                        <span class="text-[color:var(--ink-2)]">出幾份</span>
+                        <div id="copies-chips" class="seg"></div>
+                    </div>
+                </div>
                 <div id="style-chips" class="grid sm:grid-cols-2 gap-x-6"></div>
+                <button type="button" data-action="showCustomStyle" class="mt-2 w-full border-[1.5px] border-dashed border-[color:var(--rule)] rounded py-2 text-sm font-bold text-[color:var(--ink-2)] hover:border-[color:var(--ink)] hover:text-[color:var(--ink)] transition"><svg class="ic mr-1"><use href="public/icons.svg#plus"/></svg>自訂品項（寫下你想要的風格）</button>
             </section>
             <hr class="rule">
 
@@ -334,6 +345,30 @@
                 <div class="flex justify-end gap-2">
                     <button data-action="clearHistory" class="btn-line px-3 py-2 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]"><svg class="ic mr-1"><use href="public/icons.svg#trash"/></svg>清除全部</button>
                     <button data-action="closeHistoryModal" class="btn-ink px-4 py-2 text-sm">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自訂品項 -->
+    <div id="custom-style-modal" data-backdrop="closeCustomStyle" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="modal-in paper-wrap w-full max-w-md my-6" role="dialog" aria-modal="true" aria-labelledby="custom-style-title">
+            <div class="paper">
+                <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)] text-center">NEW DISH</p>
+                <h2 id="custom-style-title" class="text-xl font-black text-center mt-1">自訂品項</h2>
+                <hr class="rule-double">
+                <label class="block text-sm font-bold mb-1" for="custom-style-name">品項名稱</label>
+                <div class="flex gap-2">
+                    <input type="text" id="custom-style-emoji" class="field w-14 text-center" maxlength="4" placeholder="✍️" aria-label="代表的 Emoji">
+                    <input type="text" id="custom-style-name" class="field flex-1" maxlength="12" placeholder="阿嬤碎念風">
+                </div>
+                <label class="block text-sm font-bold mt-4 mb-1" for="custom-style-desc">想要怎樣的感覺？</label>
+                <textarea id="custom-style-desc" rows="3" maxlength="120" class="field" placeholder="像阿嬤在旁邊碎碎念，關心你有沒有吃飽，句尾常加「啦」「喔」"></textarea>
+                <p class="text-xs text-[color:var(--ink-3)] mt-1">寫越具體越像；只存在這台裝置。</p>
+                <div class="flex gap-2 mt-5">
+                    <div class="flex-1"></div>
+                    <button data-action="closeCustomStyle" class="btn-line px-4 py-2.5 text-sm">取消</button>
+                    <button data-action="saveCustomStyle" class="btn-ink px-5 py-2.5 text-sm">加入菜單</button>
                 </div>
             </div>
         </div>
