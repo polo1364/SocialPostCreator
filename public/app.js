@@ -8,7 +8,7 @@ import './js/form.js';
 import './js/order.js';
 import './js/publish.js';
 import './js/history.js';
-import { $, STORAGE_KEYS, actions, debounce, restoreInputs, save, saveInputs, state } from './js/core.js';
+import { $, STORAGE_KEYS, actions, debounce, restoreInputs, save, saveInputs, setupExtras, state } from './js/core.js';
 import { closeInstall, receiveSharedFiles, setupPwa } from './js/pwa.js';
 import { closeKeyModal, saveKey, showKeyModal, updateKeyStatus } from './js/settings.js';
 import { addImages, updateDescCount, closeCustomStyle, renderLanguages, renderPhotos, renderPlatforms, renderStars, renderStyles, restoreDraftPhotos, searchPlace, setupDragDrop } from './js/form.js';
@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDragDrop();
     setupPwa();
     setupA11y();
+    setupExtras();
     restoreDraftPhotos().then(receiveSharedFiles);
     restoreCurrentOrder();
 });

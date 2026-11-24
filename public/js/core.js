@@ -131,7 +131,8 @@ export const STORAGE_KEYS = {
     voiceId: 'post_creator_voice_id',
     presets: 'post_creator_presets',
     monthSpend: 'post_creator_month_spend',
-    budget: 'post_creator_budget'
+    budget: 'post_creator_budget',
+    extrasOpen: 'post_creator_extras_open'
 };
 export const DRAFT_PHOTOS = 'draft-photos';
 
@@ -238,6 +239,34 @@ export function saveInputs() {
     save(STORAGE_KEYS.placeLocation, $('place-location').value);
     if (state.placeInfo) save(STORAGE_KEYS.placeInfo, state.placeInfo);
     else remove(STORAGE_KEYS.placeInfo);
+    updateExtrasSummary();
+}
+
+// 「加點（選填）」收合時，標題列直接顯示已經設定了哪些
+export function updateExtrasSummary() {
+    const el = $("extras-summary");
+    if (!el) return;
+    const place = state.placeInfo?.name || $("place-name").value.trim();
+    const voice = state.voices.find(v => v.id === state.voiceId);
+    const tags = $("hashtags-input").value.trim();
+    const parts = [
+        place && place.slice(0, 10),
+        state.rating && "★".repeat(state.rating),
+        voice && `口吻：${voice.name}`,
+        tags && "Hashtag",
+        state.language && `附${LANGUAGES[state.language]}`
+    ].filter(Boolean);
+    el.textContent = parts.length ? parts.join("・") : "店家、評分、口吻、Hashtag、外語";
+    el.classList.toggle("set", parts.length > 0);
+}
+
+// 展開狀態記在瀏覽器；第一次用時，大螢幕預設展開、手機預設收合
+export function setupExtras() {
+    const d = $("extras");
+    const saved = load(STORAGE_KEYS.extrasOpen, null);
+    d.open = saved === null ? window.matchMedia("(min-width: 640px)").matches : !!saved;
+    d.addEventListener("toggle", () => save(STORAGE_KEYS.extrasOpen, d.open));
+    updateExtrasSummary();
 }
 
 export function restoreInputs() {

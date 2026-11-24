@@ -1,6 +1,6 @@
 // 貼文廚房 · 多組口吻、套餐（常用組合）、每月預算
 import { actions } from './base.js';
-import { $, LANGUAGES, PLATFORMS, STORAGE_KEYS, allStyles, escapeHtml, ic, load, remove, save, saveInputs, state, toast } from './core.js';
+import { $, LANGUAGES, PLATFORMS, STORAGE_KEYS, allStyles, escapeHtml, ic, load, remove, save, saveInputs, state, toast, updateExtrasSummary } from './core.js';
 import { renderLanguages, renderPlatforms, renderStyles } from './form.js';
 
 // ===== 多組口吻 =====
@@ -38,6 +38,7 @@ export function renderVoiceStatus() {
     const active = state.voices.find(v => v.id === state.voiceId);
     $('voice-edit-btn').classList.toggle('hidden', !active);
     $('voice-status').textContent = active ? `模仿「${active.name}」（${active.text.length} 字範例）` : '不模仿，用一般寫法';
+    updateExtrasSummary();
 }
 
 actions.selectVoice = el => {

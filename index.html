@@ -77,7 +77,7 @@
             <section>
                 <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">食材（照片）</span><span class="sec-hint">最多 5 張 · <span id="photo-count">0</span>/5</span></div>
                 <div id="upload-box" class="drop p-3">
-                    <button type="button" id="upload-placeholder" data-action="openPicker" class="w-full min-h-[150px] flex flex-col items-center justify-center text-[color:var(--ink-2)]">
+                    <button type="button" id="upload-placeholder" data-action="openPicker" class="w-full min-h-[110px] sm:min-h-[150px] flex flex-col items-center justify-center text-[color:var(--ink-2)]">
                         <svg class="ic text-3xl mb-2"><use href="public/icons.svg#camera"/></svg>
                         <span class="font-bold text-[color:var(--ink)]">點這裡選照片，或拖放進來</span>
                         <span class="text-xs mt-1">可一次選多張，也能 Ctrl+V 貼上；會自動轉正並調到最適合辨識的尺寸</span>
@@ -96,54 +96,17 @@
             </section>
             <hr class="rule">
 
-            <!-- 03 店家 -->
+            <!-- 03 平台 -->
             <section>
-                <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">加點：店家／景點資訊</span><span class="sec-hint">選填，會上網查</span></div>
-                <div class="seg mb-3" role="tablist">
-                    <button id="type-store-btn" type="button" data-action="setPlaceType" data-v="store" class="active"><svg class="ic mr-1"><use href="public/icons.svg#store"/></svg>店家</button>
-                    <button id="type-attraction-btn" type="button" data-action="setPlaceType" data-v="attraction"><svg class="ic mr-1"><use href="public/icons.svg#mountain"/></svg>景點</button>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
-                    <input type="text" id="place-name" class="field flex-1 min-w-0" placeholder="店家名稱">
-                    <div class="flex gap-2 items-end">
-                        <input type="text" id="place-location" class="field sm:w-28 flex-1" placeholder="地區">
-                        <button id="search-place-btn" type="button" data-action="searchPlace" class="btn-line px-4 py-2 text-sm shrink-0"><svg class="ic mr-1"><use href="public/icons.svg#search"/></svg>查詢</button>
-                    </div>
-                </div>
-                <div id="place-info-container" class="hidden mt-3 border-l-4 border-[color:var(--stamp)] bg-[color:var(--paper-2)] p-3 rounded-r">
-                    <div class="flex items-start justify-between gap-3 mb-1">
-                        <div class="min-w-0">
-                            <p class="font-black truncate"><span id="place-icon" class="text-[color:var(--stamp)] mr-1"></span><span id="place-display-name"></span></p>
-                            <p id="place-display-type" class="text-xs text-[color:var(--ink-3)]"></p>
-                        </div>
-                        <button type="button" data-action="clearPlaceInfo" class="text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] w-7 h-7" title="移除店家資訊"><svg class="ic"><use href="public/icons.svg#x"/></svg></button>
-                    </div>
-                    <div id="place-details" class="space-y-1 text-sm text-[color:var(--ink-2)]"></div>
-                </div>
-            </section>
-            <hr class="rule">
-
-            <!-- 04 評分 -->
-            <section>
-                <div class="sec-head"><span class="sec-no">04</span><span class="sec-title">評分</span><span class="sec-hint">選填，影響語調</span></div>
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <div id="star-rating" class="flex gap-1" role="radiogroup" aria-label="星級評分"></div>
-                    <span id="rating-text" class="text-sm text-[color:var(--ink-2)]"></span>
-                </div>
-            </section>
-            <hr class="rule">
-
-            <!-- 05 平台 -->
-            <section>
-                <div class="sec-head"><span class="sec-no">05</span><span class="sec-title">發到哪</span><span class="sec-hint">依平台調整長度、換行與 Hashtag</span></div>
+                <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">發到哪</span><span class="sec-hint">依平台調整長度、換行與 Hashtag</span></div>
                 <div id="platform-chips" class="plat" role="radiogroup" aria-label="發文平台"></div>
                 <p id="platform-hint" class="text-xs text-[color:var(--ink-3)] mt-2"></p>
             </section>
             <hr class="rule">
 
-            <!-- 06 風格 -->
+            <!-- 04 風格 -->
             <section>
-                <div class="sec-head"><span class="sec-no">06</span><span class="sec-title">品項（貼文風格）</span><span id="style-hint" class="sec-hint"></span></div>
+                <div class="sec-head"><span class="sec-no">04</span><span class="sec-title">品項（貼文風格）</span><span id="style-hint" class="sec-hint"></span></div>
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div class="seg" role="tablist" aria-label="點法">
                         <button type="button" id="mode-single" data-action="setStyleMode" data-v="single">單選</button>
@@ -154,32 +117,78 @@
                         <div id="copies-chips" class="seg"></div>
                     </div>
                 </div>
-                <div id="style-chips" class="grid sm:grid-cols-2 gap-x-6"></div>
+                <div id="style-chips" class="style-grid grid grid-cols-2 gap-2 sm:gap-x-6 sm:gap-y-0"></div>
                 <button type="button" data-action="showCustomStyle" class="mt-2 w-full border-[1.5px] border-dashed border-[color:var(--rule)] rounded py-2 text-sm font-bold text-[color:var(--ink-2)] hover:border-[color:var(--ink)] hover:text-[color:var(--ink)] transition"><svg class="ic mr-1"><use href="public/icons.svg#plus"/></svg>自訂品項（寫下你想要的風格）</button>
             </section>
             <hr class="rule">
 
-            <!-- 07–09 口吻、Hashtag、外語 -->
-            <section class="space-y-4">
-                <div>
-                    <div class="sec-head"><span class="sec-no">07</span><span class="sec-title">口吻</span><span class="sec-hint">選填，例如「個人帳號」「店家粉專」各一組</span></div>
-                    <div id="voice-chips" class="plat" role="radiogroup" aria-label="使用哪一組口吻"></div>
-                    <div class="flex items-center justify-between gap-3 mt-2">
-                        <span id="voice-status" class="text-xs text-[color:var(--ink-3)]"></span>
-                        <button type="button" id="voice-edit-btn" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs hidden"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>編輯範例</button>
+            <!-- 選填：收合起來，手機上比較短 -->
+            <details id="extras" class="extras">
+                <summary class="extras-sum">
+                    <span class="sec-title">加點（選填）</span>
+                    <span id="extras-summary" class="sec-hint flex-1 min-w-0 truncate">店家、評分、口吻、Hashtag、外語</span>
+                    <svg class="ic extras-caret" aria-hidden="true"><use href="public/icons.svg#right"/></svg>
+                </summary>
+                <div class="extras-body">
+                <!-- 05 店家 -->
+                <section>
+                    <div class="sec-head"><span class="sec-no">05</span><span class="sec-title">店家／景點資訊</span><span class="sec-hint">會上網查</span></div>
+                    <div class="seg mb-3" role="tablist">
+                        <button id="type-store-btn" type="button" data-action="setPlaceType" data-v="store" class="active"><svg class="ic mr-1"><use href="public/icons.svg#store"/></svg>店家</button>
+                        <button id="type-attraction-btn" type="button" data-action="setPlaceType" data-v="attraction"><svg class="ic mr-1"><use href="public/icons.svg#mountain"/></svg>景點</button>
                     </div>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+                        <input type="text" id="place-name" class="field flex-1 min-w-0" placeholder="店家名稱">
+                        <div class="flex gap-2 items-end">
+                            <input type="text" id="place-location" class="field sm:w-28 flex-1" placeholder="地區">
+                            <button id="search-place-btn" type="button" data-action="searchPlace" class="btn-line px-4 py-2 text-sm shrink-0"><svg class="ic mr-1"><use href="public/icons.svg#search"/></svg>查詢</button>
+                        </div>
+                    </div>
+                    <div id="place-info-container" class="hidden mt-3 border-l-4 border-[color:var(--stamp)] bg-[color:var(--paper-2)] p-3 rounded-r">
+                        <div class="flex items-start justify-between gap-3 mb-1">
+                            <div class="min-w-0">
+                                <p class="font-black truncate"><span id="place-icon" class="text-[color:var(--stamp)] mr-1"></span><span id="place-display-name"></span></p>
+                                <p id="place-display-type" class="text-xs text-[color:var(--ink-3)]"></p>
+                            </div>
+                            <button type="button" data-action="clearPlaceInfo" class="text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] w-7 h-7" title="移除店家資訊"><svg class="ic"><use href="public/icons.svg#x"/></svg></button>
+                        </div>
+                        <div id="place-details" class="space-y-1 text-sm text-[color:var(--ink-2)]"></div>
+                    </div>
+                </section>
+                <hr class="rule">
+                <!-- 06 評分 -->
+                <section>
+                    <div class="sec-head"><span class="sec-no">06</span><span class="sec-title">評分</span><span class="sec-hint">影響語調</span></div>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <div id="star-rating" class="flex gap-1" role="radiogroup" aria-label="星級評分"></div>
+                        <span id="rating-text" class="text-sm text-[color:var(--ink-2)]"></span>
+                    </div>
+                </section>
+                <hr class="rule">
+                <!-- 07–09 口吻、Hashtag、外語 -->
+                <section class="space-y-4">
+                    <div>
+                        <div class="sec-head"><span class="sec-no">07</span><span class="sec-title">口吻</span><span class="sec-hint">例如「個人帳號」「店家粉專」各一組</span></div>
+                        <div id="voice-chips" class="plat" role="radiogroup" aria-label="使用哪一組口吻"></div>
+                        <div class="flex items-center justify-between gap-3 mt-2">
+                            <span id="voice-status" class="text-xs text-[color:var(--ink-3)]"></span>
+                            <button type="button" id="voice-edit-btn" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs hidden"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>編輯範例</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="sec-head"><span class="sec-no">08</span><span class="sec-title">常用 Hashtag</span><span class="sec-hint">每則都會帶上</span></div>
+                        <input type="text" id="hashtags-input" class="field mono" placeholder="#台中美食 #週末去哪 #某某咖啡" maxlength="200">
+                    </div>
+                    <div>
+                        <div class="sec-head"><span class="sec-no">09</span><span class="sec-title">外語版本</span><span class="sec-hint">每則多附一份翻譯</span></div>
+                        <div id="language-chips" class="seg"></div>
+                    </div>
+                </section>
                 </div>
-                <div>
-                    <div class="sec-head"><span class="sec-no">08</span><span class="sec-title">常用 Hashtag</span><span class="sec-hint">選填，每則都會帶上</span></div>
-                    <input type="text" id="hashtags-input" class="field mono" placeholder="#台中美食 #週末去哪 #某某咖啡" maxlength="200">
-                </div>
-                <div>
-                    <div class="sec-head"><span class="sec-no">09</span><span class="sec-title">外語版本</span><span class="sec-hint">選填，每則多附一份翻譯</span></div>
-                    <div id="language-chips" class="seg"></div>
-                </div>
-            </section>
+            </details>
             <hr class="rule-double">
 
+            <div id="submit-bar" class="submit-bar">
             <div class="flex items-center justify-between mono text-sm mb-3">
                 <span>小計 <button type="button" id="clear-form-btn" data-action="clearOrderForm" class="ml-2 text-xs underline text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] font-sans" title="把自己填的全部清除，選項回到預設"><svg class="ic mr-0.5"><use href="public/icons.svg#trash"/></svg>全部清除</button></span><span id="order-summary">3 道貼文</span>
             </div>
@@ -187,6 +196,7 @@
                 <span id="generate-label">送出點單</span><svg class="ic"><use href="public/icons.svg#arrow-right"/></svg>
             </button>
             <p id="generate-hint" class="text-center text-xs text-[color:var(--ink-3)] mt-2"></p>
+            </div>
         </div>
     </main>
 

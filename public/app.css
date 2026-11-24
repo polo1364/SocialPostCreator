@@ -16,6 +16,7 @@
 }
 * { box-sizing: border-box; }
 html, body { overflow-x: hidden; }
+@supports (overflow-x: clip) { html, body { overflow-x: clip; } } /* clip 不會變成捲動容器，送出列的 sticky 才有效 */
 body {
     margin: 0;
     font-family: var(--sans);
@@ -217,6 +218,40 @@ textarea.field:focus { border-color: var(--ink); }
 kbd { font-family: var(--mono); font-size: .7rem; padding: .05rem .35rem; border-radius: .3rem; border: 1px solid rgba(255,255,255,.35); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 640px) { .paper { padding-left: 1.1rem; padding-right: 1.1rem; } }
+
+/* 加點（選填）：可收合 */
+.extras-sum { display: flex; align-items: center; gap: .6rem; min-height: 44px; cursor: pointer; list-style: none; user-select: none; }
+.extras-sum::-webkit-details-marker { display: none; }
+.extras-sum .sec-hint { text-align: right; }
+.extras-sum .sec-hint.set { color: var(--stamp); font-weight: 700; }
+.extras-caret { color: var(--ink-3); transition: transform .15s; }
+.extras[open] .extras-caret { transform: rotate(90deg); }
+.extras-body { padding-top: .6rem; }
+
+/* 手機：版面壓縮，但按鈕維持好按的大小 */
+@media (max-width: 639px) {
+    .rule { margin: .8rem 0; }
+    .sec-head { margin-bottom: .55rem; }
+    /* 品項：兩欄方塊，取代一行一個的菜單 */
+    .style-grid .menu-item {
+        min-height: 44px; padding: .5rem .55rem; gap: .4rem; font-size: .9rem;
+        border: 1.5px solid var(--rule); border-radius: .5rem;
+    }
+    .style-grid .menu-item.selected { border-color: var(--ink); background: rgba(0,0,0,0.04); }
+    .style-grid .menu-item .leader { display: none; }
+    .style-grid .menu-item .tag { display: none; margin-left: auto; }
+    .style-grid .menu-item.selected .tag { display: inline; }
+    .style-grid .menu-item .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    /* 送出區固定在畫面底部 */
+    .submit-bar {
+        position: sticky; bottom: 0; z-index: 20; background: var(--paper);
+        margin: 0 -1.1rem; padding: .6rem 1.1rem calc(.6rem + env(safe-area-inset-bottom));
+        border-top: 1.5px dashed var(--rule); box-shadow: 0 -8px 14px -10px rgba(0,0,0,.35);
+    }
+    .submit-bar > div:first-child { margin-bottom: .45rem; }
+    .submit-bar #generate-btn { padding-top: .8rem; padding-bottom: .8rem; font-size: 1.05rem; }
+    .submit-bar #generate-hint { margin-top: .3rem; }
+}
 
 /* 圖示（SVG sprite） */
 .ic { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; fill: currentColor; flex-shrink: 0; }
