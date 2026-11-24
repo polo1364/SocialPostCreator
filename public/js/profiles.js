@@ -126,7 +126,7 @@ function presetSummary(p) {
     const styles = (p.styles || []).map(k => allStyles()[k]?.name).filter(Boolean);
     return [
         PLATFORMS[p.platform]?.name,
-        p.styleMode === 'single' ? `${styles[0] || ''}×${p.copies || 1}` : styles.join('、'),
+        styles.join('＋'),
         p.hashtags,
         p.language ? `附${LANGUAGES[p.language]}` : '',
         state.voices.find(v => v.id === p.voiceId)?.name
@@ -153,7 +153,6 @@ function currentAsPreset(name) {
         platform: state.platform,
         styleMode: state.styleMode,
         styles: [...state.styles],
-        copies: state.copies,
         hashtags: $('hashtags-input').value.trim(),
         language: state.language,
         voiceId: state.voiceId
@@ -196,7 +195,6 @@ actions.applyPreset = el => {
     state.styleMode = p.styleMode === 'single' ? 'single' : 'multi';
     const valid = (p.styles || []).filter(k => styles[k]);
     if (valid.length) state.styles = valid;
-    state.copies = Math.min(Math.max(Number(p.copies) || 1, 1), 3);
     $('hashtags-input').value = p.hashtags || '';
     state.language = LANGUAGES[p.language] !== undefined ? p.language : '';
     if (p.voiceId === '' || state.voices.some(v => v.id === p.voiceId)) {

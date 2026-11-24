@@ -240,7 +240,6 @@ kbd { font-family: var(--mono); font-size: .7rem; padding: .05rem .35rem; border
     .style-grid .menu-item.selected { border-color: var(--ink); background: rgba(0,0,0,0.04); }
     .style-grid .menu-item .leader { display: none; }
     .style-grid .menu-item .tag { display: none; margin-left: auto; }
-    .style-grid .menu-item.selected .tag { display: inline; }
     .style-grid .menu-item .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     /* 送出區固定在畫面底部 */
     .submit-bar {

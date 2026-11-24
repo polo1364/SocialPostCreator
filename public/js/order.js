@@ -91,7 +91,6 @@ export async function generateCaption() {
             images: await imagePayload(images),
             description: desc,
             styles: state.styles,
-            copies: state.styleMode === 'single' ? state.copies : 1,
             ...commonOpts(order)
         };
 
@@ -115,7 +114,7 @@ export async function generateCaption() {
         addSpend(final.cost);
         saveOrder(order, true);
         rememberOrder(order);
-        toast(`出單 ${order.items.length} 則貼文${final.cost ? `（${fmtUsd(final.cost.usd)}）` : ''}`, 'success');
+        toast(`出單完成${final.cost ? `（${fmtUsd(final.cost.usd)}）` : ''}`, 'success');
     } catch (e) {
         console.error(e);
         toast(e.message || '出單失敗，請稍後再試', 'error');
@@ -418,13 +417,14 @@ actions.redoTicket = async el => {
     const item = o?.items[i];
     if (!item || item.busy || item.streaming || !o.images?.length) return;
     if (!requireKey()) return;
-    const styleKey = styleKeyByName(item.style);
-    if (!styleKey) return toast('這道的風格無法辨識，請用整單重做', 'error');
+    // 融合的風格名稱是「幽默搞笑＋溫馨感性」，拆回各自的 key
+    const styleKeys = String(item.style || '').split(K.STYLE_JOINER).map(n => styleKeyByName(n.trim()));
+    if (!styleKeys.length || styleKeys.some(k => !k)) return toast('這道的風格無法辨識，請用整單重做', 'error');
 
     const opts = {
         images: await imagePayload(o.images),
         description: o.context?.description || '',
-        redoStyle: styleKey,
+        redoStyle: styleKeys,
         avoidCaption: item.versions[item.idx].caption,
         ...commonOpts(o)
     };

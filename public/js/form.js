@@ -1,6 +1,6 @@
 // 貼文廚房 · 點單表：照片、品項、平台、口吻、店家
 import * as K from '../kitchen.js';
-import { $, ALLOWED_TYPES, DEFAULT_PLATFORM, DRAFT_PHOTOS, LANGUAGES, MAX_BYTES, MAX_COPIES, MAX_EDGE, MAX_PHOTOS, MAX_STYLES, PLATFORMS, RATING_TEXTS, STORAGE_KEYS, STORE_EDGE, actions, addSpend, allStyles, escapeHtml, fmtUsd, ic, idbDelete, idbGet, idbPut, load, remove, save, saveInputs, state, toast, withClaude } from './core.js';
+import { $, ALLOWED_TYPES, DEFAULT_PLATFORM, DRAFT_PHOTOS, LANGUAGES, MAX_BYTES, MAX_EDGE, MAX_PHOTOS, MAX_STYLES, PLATFORMS, RATING_TEXTS, STORAGE_KEYS, STORE_EDGE, actions, addSpend, allStyles, escapeHtml, fmtUsd, ic, idbDelete, idbGet, idbPut, load, remove, save, saveInputs, state, toast, withClaude } from './core.js';
 import { requireKey } from './settings.js';
 import { checkBtnState } from './order.js';
 import { renderVoiceStatus, saveVoices } from './profiles.js';
@@ -40,35 +40,27 @@ export function renderStyles() {
     if (single && state.styles.length > 1) state.styles = state.styles.slice(0, 1);
     $('mode-single').classList.toggle('active', single);
     $('mode-multi').classList.toggle('active', !single);
-    $('copies-wrap').classList.toggle('hidden', !single);
-    $('copies-chips').innerHTML = [1, 2, 3].map(n => `<button type="button" class="${n === state.copies ? 'active' : ''}" data-action="setCopies" data-v="${n}">${n}</button>`).join('');
     $('style-chips').innerHTML = Object.entries(allStyles()).map(([key, st]) => {
         const on = state.styles.includes(key);
-        const qty = single ? `×${state.copies}` : '×1';
         return `
         <div class="flex items-center">
             <button type="button" class="menu-item ${on ? 'selected' : ''}" data-action="toggleStyle" data-v="${key}" aria-checked="${on}" role="${single ? 'radio' : 'checkbox'}">
                 <span class="box ${single ? '!rounded-full' : ''}">${ic('check')}</span>
                 <span class="name">${escapeHtml(st.name)}</span><span>${escapeHtml(st.emoji)}</span>
                 <span class="leader"></span>
-                <span class="tag">${on ? qty : escapeHtml(st.tag)}</span>
+                <span class="tag">${escapeHtml(st.tag)}</span>
             </button>
             ${st.custom ? `<button type="button" data-action="deleteCustomStyle" data-v="${key}" class="w-7 h-7 shrink-0 text-[color:var(--ink-3)] hover:text-[color:var(--stamp)]" title="刪除這個自訂品項">${ic('x')}</button>` : ''}
         </div>`;
     }).join('');
-    const count = single ? state.copies : state.styles.length;
-    $('style-hint').textContent = single ? '選 1 道，可出 1–3 份不同寫法' : `選 1–${MAX_STYLES} 道 · ${state.styles.length}/${MAX_STYLES}`;
-    $('order-summary').textContent = `${count} 張貼文`;
+    const names = state.styles.map(k => allStyles()[k]?.name).filter(Boolean);
+    $('style-hint').textContent = single ? '選 1 種風格' : `可勾 1–${MAX_STYLES} 種 · ${state.styles.length}/${MAX_STYLES}`;
+    $('blend-note').textContent = !single && names.length > 1 ? '勾選的風格會融合成一則' : '';
+    $('order-summary').textContent = names.length > 1 ? `1 則（${names.join('＋')}）` : `1 則${names[0] ? `（${names[0]}）` : ''}`;
 }
 
 actions.setStyleMode = el => {
     state.styleMode = el.dataset.v === 'single' ? 'single' : 'multi';
-    renderStyles();
-    saveInputs();
-};
-
-actions.setCopies = el => {
-    state.copies = Math.min(Math.max(Number(el.dataset.v) || 1, 1), MAX_COPIES);
     renderStyles();
     saveInputs();
 };
@@ -80,10 +72,10 @@ actions.toggleStyle = el => {
     } else {
         const i = state.styles.indexOf(key);
         if (i > -1) {
-            if (state.styles.length <= 1) return toast('至少要點 1 道', 'error');
+            if (state.styles.length <= 1) return toast('至少要選 1 種風格', 'error');
             state.styles.splice(i, 1);
         } else {
-            if (state.styles.length >= MAX_STYLES) return toast(`最多點 ${MAX_STYLES} 道`, 'error');
+            if (state.styles.length >= MAX_STYLES) return toast(`最多融合 ${MAX_STYLES} 種風格`, 'error');
             state.styles.push(key);
         }
     }
@@ -335,7 +327,6 @@ actions.clearOrderForm = () => {
     state.platform = DEFAULT_PLATFORM;
     renderPlatforms();
     state.styleMode = "multi";
-    state.copies = 1;
     state.styles = [...DEFAULT_STYLES];
     renderStyles();
     $("hashtags-input").value = "";

@@ -167,18 +167,23 @@ test('店家搜尋：pause_turn 會續跑，費用會加總', async () => {
     await assert.rejects(K.searchPlace(client, { placeName: ' ' }), /名稱/);
 });
 
-test('品項：單選可出多份、複選上限 6 道、沒選就給預設', () => {
-    const one = K.resolveStyles({ styles: ['warm'], copies: 3 });
-    assert.deepEqual(one.keys, ['warm', 'warm', 'warm']);
-    assert.deepEqual(K.resolveStyles({ styles: ['warm'], copies: 9 }).keys.length, 3);
-    assert.deepEqual(K.resolveStyles({ styles: ['warm', 'foodie'], copies: 3 }).keys, ['warm', 'foodie']);
+test('品項：每次只出一則，複選會融合成一則、上限 6 種、沒選就給預設', () => {
+    assert.deepEqual(K.resolveStyles({ styles: ['warm', 'foodie'] }).keys, ['warm', 'foodie']);
     const many = ['humorous', 'warm', 'foodie', 'literary', 'energetic', 'minimalist', 'storytelling', 'trendy'];
     assert.equal(K.resolveStyles({ styles: many }).keys.length, 6);
     assert.deepEqual(K.resolveStyles({ styles: [] }).keys, ['humorous']);
     assert.deepEqual(K.resolveStyles({ styles: ['warm', 'warm'] }).keys, ['warm']);
-    const { params, styleCount } = K.buildCaptionRequest({ images: [img], styles: ['roast'], copies: 2 });
+    const single = K.buildCaptionRequest({ images: [img], styles: ['roast'] });
+    assert.match(single.params.messages[0].content.at(-1).text, /創作 一則貼文/);
+    const { params, styleCount } = K.buildCaptionRequest({ images: [img], styles: ['humorous', 'warm'] });
     assert.equal(styleCount, 2);
-    assert.match(params.messages[0].content.at(-1).text, /2 則都是「毒舌吐槽」風格、但切入角度與寫法都明顯不同/);
+    const prompt = params.messages[0].content.at(-1).text;
+    assert.match(prompt, /一則融合「幽默搞笑＋溫馨感性」風格的貼文/);
+    assert.match(prompt, /融合在「同一則」貼文裡/);
+    assert.match(prompt, /只放一項：style 填「幽默搞笑＋溫馨感性」/);
+    // 重做融合版：傳風格陣列
+    const redo = K.buildCaptionRequest({ images: [img], redoStyle: ['humorous', 'warm'], avoidCaption: '舊版' });
+    assert.match(redo.params.messages[0].content.at(-1).text, /幽默搞笑＋溫馨感性[\s\S]*舊版/);
 });
 
 test('品項：自訂風格會帶進提示詞，格式不對的會被過濾', () => {
@@ -192,7 +197,7 @@ test('品項：自訂風格會帶進提示詞，格式不對的會被過濾', ()
     const { params } = K.buildCaptionRequest({ images: [img], styles: ['custom-1', 'warm', 'bad-key'], customStyles });
     const prompt = params.messages[0].content.at(-1).text;
     assert.match(prompt, /【阿嬤碎念風】像阿嬤碎碎念，句尾加「啦」/);
-    assert.match(prompt, /2 則風格各異/);
+    assert.match(prompt, /阿嬤碎念風＋溫馨感性/);
     assert.doesNotMatch(prompt, /不合法/);
     const redo = K.buildCaptionRequest({ images: [img], redoStyle: 'custom-1', customStyles, avoidCaption: '舊的' });
     assert.match(redo.params.messages[0].content.at(-1).text, /阿嬤碎念風/);

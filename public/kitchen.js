@@ -157,7 +157,8 @@ export const STYLE_DEFINITIONS = {
 };
 
 export const MAX_STYLES = 6;
-export const MAX_COPIES = 3;
+// 多個風格融合成一則時，名稱用這個符號串起來（重做時再拆回來）
+export const STYLE_JOINER = '＋';
 
 // 使用者自訂的品項：key 一律以 custom- 開頭，名稱與說明有長度上限，避免塞進奇怪的長文
 export function sanitizeCustomStyles(custom) {
@@ -176,14 +177,12 @@ export function sanitizeCustomStyles(custom) {
     return out;
 }
 
-// 決定這次要寫哪些風格：可單選（1 道，可出多份）或複選（1–6 道）
-export function resolveStyles({ styles, copies, redoStyle, customStyles } = {}) {
+// 決定這次要融合哪些風格（1–6 種）；每次出單都只寫一則
+export function resolveStyles({ styles, redoStyle, customStyles } = {}) {
     const all = { ...STYLE_DEFINITIONS, ...sanitizeCustomStyles(customStyles) };
-    if (redoStyle && all[redoStyle]) return { keys: [redoStyle], all };
-    const valid = [...new Set(Array.isArray(styles) ? styles.filter(k => all[k]) : [])].slice(0, MAX_STYLES);
+    const pickFrom = redoStyle ? [].concat(redoStyle) : styles;
+    const valid = [...new Set(Array.isArray(pickFrom) ? pickFrom.filter(k => all[k]) : [])].slice(0, MAX_STYLES);
     if (!valid.length) return { keys: ['humorous'], all };
-    const n = Math.min(Math.max(parseInt(copies, 10) || 1, 1), MAX_COPIES);
-    if (valid.length === 1 && n > 1) return { keys: Array(n).fill(valid[0]), all };
     return { keys: valid, all };
 }
 
@@ -353,22 +352,23 @@ export function buildCaptionRequest(opts) {
     const userDescription = String(opts.description || (multi ? '這組照片' : '這張照片')).trim().slice(0, 1000);
     const rating = parseInt(opts.rating, 10) || 0;
     const { keys: stylesToUse, all: styleDefs } = resolveStyles(opts);
-    const redoStyle = opts.redoStyle && styleDefs[opts.redoStyle] ? opts.redoStyle : null;
     const avoidCaption = typeof opts.avoidCaption === 'string' ? opts.avoidCaption.slice(0, 2000) : '';
-    const sameStyle = stylesToUse.length > 1 && stylesToUse.every(k => k === stylesToUse[0]);
+    const blend = stylesToUse.length > 1;
+    const styleName = stylesToUse.map(k => styleDefs[k].name).join(STYLE_JOINER);
 
-    const styleRequirements = stylesToUse.map((key, i) => {
+    const styleLines = stylesToUse.map(key => {
         const s = styleDefs[key];
-        return `${i + 1}. 【${s.name}】${s.description}，可使用 ${s.emoji} 等相關表情`;
+        return `- 【${s.name}】${s.description}，可使用 ${s.emoji} 等相關表情`;
     }).join('\n');
+    const styleRequirements = blend
+        ? `把下面 ${stylesToUse.length} 種風格自然融合在「同一則」貼文裡，讓整篇讀起來是一個完整的聲音；不要分段各寫一種，也不要寫成好幾則：\n${styleLines}`
+        : styleLines;
 
     const photoIntro = multi
         ? `以下共有 ${images.length} 張照片（已標上「照片 1」到「照片 ${images.length}」），來自同一次經驗。請把它們當成一組來看，貼文可以串起多張照片的內容（例如餐點、環境、店外觀），但不要逐張流水帳。`
         : '觀察這張圖片。';
-    const countText = stylesToUse.length === 1 ? '一則貼文'
-        : sameStyle ? `${stylesToUse.length} 則都是「${styleDefs[stylesToUse[0]].name}」風格、但切入角度與寫法都明顯不同的貼文`
-        : `${stylesToUse.length} 則風格各異的貼文`;
-    const redoText = redoStyle && avoidCaption
+    const countText = blend ? `一則融合「${styleName}」風格的貼文` : '一則貼文';
+    const redoText = avoidCaption
         ? `\n【這次是重做】下面是上一版，請寫一則角度、開頭、句型都明顯不同的新版本：\n<previous_caption>\n${avoidCaption}\n</previous_caption>\n`
         : '';
 
@@ -388,19 +388,19 @@ ${redoText}
 - 結尾：${pick(ENDINGS)}
 - 氛圍：${pick(MOODS)}
 
-【風格要求，依序各寫一則】
+【風格要求】
 ${styleRequirements}
 
 【寫作規則】
-1. 每則開頭完全不同，句型結構有變化
+1. 開頭要有記憶點，句型結構有變化
 2. 自然口語化，像真人在社群發文，適當使用 Emoji 與換行
 3. ${PLATFORMS[platform].length}
-4. 每則至少提到一個 image_analysis 裡的具體細節，讓讀者看得出是在講這${multi ? '組' : '張'}照片
+4. 至少提到一個 image_analysis 裡的具體細節，讓讀者看得出是在講這${multi ? '組' : '張'}照片
 5. 圖片裡看不到、資料裡也沒有的細節不要編造
 
 接著填 alt_texts：依照片順序，為每張照片寫一段替代文字（給視障者的讀屏軟體用，也可貼到臉書照片的「替代文字」），客觀描述畫面內容，四十到一百字，不加 Hashtag、Emoji 或行銷語氣。
 
-最後輸出 captions 陣列，每項的 style 填上方的風格名稱（例如「幽默搞笑」），caption 填貼文內容。
+最後輸出 captions 陣列，只放一項：style 填「${styleName}」，caption 填貼文內容。
 ${buildTranslationContext(language)}`;
 
     const params = buildParams(model, {

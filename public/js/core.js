@@ -67,7 +67,6 @@ export const STYLES = {
     elder: { name: '長輩圖風', emoji: '🌸', tag: '早安' }
 };
 export const MAX_STYLES = 6;
-export const MAX_COPIES = 3;
 
 // 內建＋自訂品項
 export function allStyles() {
@@ -109,7 +108,6 @@ export const STORAGE_KEYS = {
     description: 'post_creator_description',
     styles: 'post_creator_styles',
     styleMode: 'post_creator_style_mode',
-    copies: 'post_creator_copies',
     customStyles: 'post_creator_custom_styles',
     rating: 'post_creator_rating',
     platform: 'post_creator_platform_v2',
@@ -154,8 +152,7 @@ export const state = {
     placeInfo: null,
     placeType: 'store',
     styles: ['humorous', 'warm', 'foodie'],
-    styleMode: 'multi', // single：單選一道、可出多份；multi：複選 1–6 道
-    copies: 1,
+    styleMode: 'multi', // single：單選一種；multi：複選 1–6 種，融合成一則
     customStyles: {},
     rating: 0,
     platform: DEFAULT_PLATFORM,
@@ -229,7 +226,6 @@ export function saveInputs() {
     save(STORAGE_KEYS.description, $('user-desc').value);
     save(STORAGE_KEYS.styles, state.styles);
     save(STORAGE_KEYS.styleMode, state.styleMode);
-    save(STORAGE_KEYS.copies, state.copies);
     save(STORAGE_KEYS.rating, state.rating);
     save(STORAGE_KEYS.platform, state.platform);
     save(STORAGE_KEYS.hashtags, $('hashtags-input').value);
@@ -282,7 +278,7 @@ export function restoreInputs() {
     const custom = load(STORAGE_KEYS.customStyles, {});
     state.customStyles = custom && typeof custom === 'object' ? custom : {};
     state.styleMode = load(STORAGE_KEYS.styleMode, 'multi') === 'single' ? 'single' : 'multi';
-    state.copies = Math.min(Math.max(Number(load(STORAGE_KEYS.copies, 1)) || 1, 1), MAX_COPIES);
+    remove('post_creator_copies');
     const styles = load(STORAGE_KEYS.styles);
     if (Array.isArray(styles)) {
         const valid = styles.filter(s => allStyles()[s]).slice(0, MAX_STYLES);
