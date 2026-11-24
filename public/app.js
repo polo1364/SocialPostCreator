@@ -102,8 +102,12 @@ const STORAGE_KEYS = {
     placeLocation: 'post_creator_place_location',
     history: 'post_creator_history',
     orderNo: 'post_creator_order_no',
-    spend: 'post_creator_spend'
+    spend: 'post_creator_spend',
+    current: 'post_creator_current',
+    chatDrafts: 'post_creator_chat_drafts',
+    voiceDraft: 'post_creator_voice_draft'
 };
+const DRAFT_PHOTOS = 'draft-photos';
 
 const HISTORY_LIMIT = 20;
 const MAX_PHOTOS = 5;
@@ -285,7 +289,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); searchPlace(); }
     }));
     $('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
-    $('voice-input').addEventListener('input', () => { $('voice-count').textContent = `${$('voice-input').value.length}/3000`; });
+    $('voice-input').addEventListener('input', () => {
+        $('voice-count').textContent = `${$('voice-input').value.length}/3000`;
+        save(STORAGE_KEYS.voiceDraft, $('voice-input').value);
+    });
+    // 小編聊天框打到一半的字也存起來
+    document.addEventListener('input', debounce(e => {
+        const input = e.target.closest && e.target.closest('.chat-input');
+        const form = input && input.closest('[data-submit="sendRefine"]');
+        if (form) setChatDraft(Number(form.dataset.i), input.value);
+    }, 300));
+    // 離開或切到背景前把輸入立刻存檔（不等自動存檔的延遲）
+    const flush = () => saveInputs();
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
     $('file-upload').addEventListener('change', e => { addImages(e.target.files); e.target.value = ''; });
     $('import-file').addEventListener('change', e => { importHistoryFile(e.target.files[0]); e.target.value = ''; });
     $('fav-only').addEventListener('change', renderHistoryList);
@@ -302,7 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     setupDragDrop();
     setupPwa();
-    receiveSharedFiles();
+    restoreDraftPhotos().then(receiveSharedFiles);
+    restoreCurrentOrder();
 });
 
 function updateDescCount() { $('desc-count').textContent = `${$('user-desc').value.length}/1000`; }
@@ -632,13 +650,14 @@ actions.toggleVoice = () => {
     renderVoiceStatus();
 };
 function showVoiceModal() {
-    $('voice-input').value = state.voice;
-    $('voice-count').textContent = `${state.voice.length}/3000`;
+    const draft = load(STORAGE_KEYS.voiceDraft, null);
+    $('voice-input').value = typeof draft === 'string' ? draft : state.voice;
+    $('voice-count').textContent = `${$('voice-input').value.length}/3000`;
     $('voice-modal').classList.remove('hidden');
     setTimeout(() => $('voice-input').focus(), 50);
 }
 actions.showVoiceModal = showVoiceModal;
-function closeVoiceModal() { $('voice-modal').classList.add('hidden'); }
+function closeVoiceModal() { $('voice-modal').classList.add('hidden'); remove(STORAGE_KEYS.voiceDraft); }
 actions.closeVoiceModal = closeVoiceModal;
 actions.saveVoice = () => {
     state.voice = $('voice-input').value.trim().slice(0, 3000);
@@ -656,6 +675,23 @@ const activeHashtags = () => $('hashtags-input').value.trim();
 // ===== 照片 =====
 actions.openPicker = () => $('file-upload').click();
 
+// 點單用的照片存在 IndexedDB，重新整理後還在
+let draftTimer = null;
+function saveDraftPhotos() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+        if (state.files.length) idbPut(DRAFT_PHOTOS, state.files.map(f => f.file));
+        else idbDelete(DRAFT_PHOTOS);
+    }, 150);
+}
+
+async function restoreDraftPhotos() {
+    const files = await idbGet(DRAFT_PHOTOS);
+    if (!Array.isArray(files) || !files.length || state.files.length) return;
+    state.files = files.filter(f => f && f.size).slice(0, MAX_PHOTOS).map(f => ({ file: f, url: URL.createObjectURL(f) }));
+    renderPhotos();
+}
+
 function addImages(fileList) {
     const files = [...(fileList || [])].filter(Boolean);
     if (!files.length) return;
@@ -672,12 +708,14 @@ function addImages(fileList) {
     if (overMax) notes.push(`超過 ${MAX_PHOTOS} 張，略過 ${overMax} 張`);
     if (notes.length) toast(notes.join('；'), 'error');
     renderPhotos();
+    saveDraftPhotos();
 }
 
 actions.removePhoto = el => {
     const [item] = state.files.splice(Number(el.dataset.i), 1);
     if (item) URL.revokeObjectURL(item.url);
     renderPhotos();
+    saveDraftPhotos();
 };
 actions.movePhoto = el => {
     const i = Number(el.dataset.i);
@@ -685,6 +723,7 @@ actions.movePhoto = el => {
     if (j < 0 || j >= state.files.length) return;
     [state.files[i], state.files[j]] = [state.files[j], state.files[i]];
     renderPhotos();
+    saveDraftPhotos();
 };
 
 function renderPhotos() {
@@ -897,6 +936,8 @@ async function generateCaption() {
             streaming: true
         };
         state.order = order;
+        rememberOrder(order, true);
+        persistPhotos(order);
 
         const opts = { images: await imagePayload(images), description: desc, styles: state.styles, ...commonOpts(order) };
 
@@ -919,7 +960,7 @@ async function generateCaption() {
         if (state.order === order) renderOrder(!shown, !shown);
         addSpend(final.cost);
         saveOrder(order, true);
-        persistPhotos(order);
+        rememberOrder(order);
         toast(`出單 ${order.items.length} 則貼文${final.cost ? `（${fmtUsd(final.cost.usd)}）` : ''}`, 'success');
     } catch (e) {
         console.error(e);
@@ -927,10 +968,14 @@ async function generateCaption() {
         if (order && state.order === order) {
             if (!order.items.some(it => it.versions[0].caption)) {
                 $('result-area').classList.add('hidden');
+                forgetOrder(order);
             } else {
+                // 印到一半失敗：保留已印好的部分，存進訂單紀錄
                 order.streaming = false;
                 order.items.forEach(it => { it.streaming = false; });
                 renderOrder(false, false);
+                saveOrder(order, true);
+                rememberOrder(order);
             }
         }
         if (/API Key/.test(e.message || '')) showKeyModal();
@@ -943,6 +988,7 @@ async function generateCaption() {
 actions.generateCaption = generateCaption;
 
 function applyPartial(order, partial) {
+    rememberOrderSoon(order);
     if (partial.analysis?.summary) {
         order.analysis = partial.analysis;
         renderAnalysis(order.analysis);
@@ -1037,12 +1083,22 @@ function renderAnalysis(a) {
     box.classList.remove('hidden');
 }
 
+function chatDraftKey(i) { return `${state.order?.historyId}-${i}`; }
+function getChatDraft(i) { return (load(STORAGE_KEYS.chatDrafts, {}) || {})[chatDraftKey(i)] || ''; }
+function setChatDraft(i, text) {
+    const all = load(STORAGE_KEYS.chatDrafts, {}) || {};
+    if (text) all[chatDraftKey(i)] = text; else delete all[chatDraftKey(i)];
+    const keys = Object.keys(all);
+    if (keys.length > 50) keys.slice(0, keys.length - 50).forEach(k => delete all[k]);
+    save(STORAGE_KEYS.chatDrafts, all);
+}
+
 function renderTicket(i) {
     const o = state.order;
     const item = o?.items[i];
     const wrap = $(`ticket-${i}`);
     if (!wrap || !item) return;
-    const keepInput = wrap.querySelector('.chat-input')?.value || '';
+    const keepInput = wrap.querySelector('.chat-input')?.value || getChatDraft(i);
     const v = item.versions[item.idx];
     const total = item.versions.length;
     const styleEntry = Object.values(STYLES).find(s => s.name === item.style);
@@ -1140,6 +1196,7 @@ actions.sendRefine = form => {
     const text = (input?.value || '').trim();
     if (!text) return toast('先跟小編說想怎麼改', 'error');
     input.value = '';
+    setChatDraft(Number(form.dataset.i), '');
     refineCaption(Number(form.dataset.i), text);
 };
 
@@ -1536,8 +1593,48 @@ async function persistPhotos(o) {
     if (!('indexedDB' in window) || !o.images?.length) return;
     const copies = await Promise.all(o.images.map(storeCopy));
     await idbPut(o.historyId, copies);
-    const keep = new Set(state.history.map(h => h.id));
+    const keep = new Set([...state.history.map(h => h.id), o.historyId, DRAFT_PHOTOS]);
     for (const k of await idbKeys()) if (!keep.has(k)) idbDelete(k);
+}
+
+// 記住出餐區目前顯示的是哪張單；出單中則把印到一半的內容也存起來
+function rememberOrder(o, inFlight = false) {
+    if (!o) return;
+    save(STORAGE_KEYS.current, inFlight ? { id: o.historyId, partial: orderToHistory(o) } : { id: o.historyId });
+}
+let rememberTimer = null;
+function rememberOrderSoon(o) {
+    if (rememberTimer) return;
+    rememberTimer = setTimeout(() => { rememberTimer = null; if (o.streaming) rememberOrder(o, true); }, 500);
+}
+function forgetOrder(o) {
+    const cur = load(STORAGE_KEYS.current);
+    if (cur && (!o || cur.id === o.historyId)) remove(STORAGE_KEYS.current);
+}
+
+async function restoreCurrentOrder() {
+    const cur = load(STORAGE_KEYS.current);
+    if (!cur || !cur.id) return;
+    let entry = state.history.find(h => h.id === cur.id);
+    const interrupted = !entry && cur.partial;
+    if (interrupted) {
+        entry = cur.partial;
+        if (!entry.captions?.length) { remove(STORAGE_KEYS.current); return; }
+        // 被打斷的單也放進訂單紀錄，之後可以照常微調、重做
+        state.history.unshift(entry);
+        storeHistory();
+        save(STORAGE_KEYS.current, { id: entry.id });
+    }
+    if (!entry) { remove(STORAGE_KEYS.current); return; }
+    const o = orderFromHistory(entry);
+    const blobs = await idbGet(entry.id);
+    if (Array.isArray(blobs) && blobs.length) {
+        o.images = blobs;
+        o.photoUrls = blobs.map(b => URL.createObjectURL(b));
+    }
+    state.order = o;
+    renderOrder(false, false);
+    if (interrupted) toast('上次出單被重新整理打斷，已保留印好的部分；可以按「整單重做」或「重做這道」', 'info');
 }
 
 function updateHistoryButton() {
@@ -1599,6 +1696,7 @@ actions.loadHistoryItem = async el => {
         o.photoUrls = blobs.map(b => URL.createObjectURL(b));
     }
     state.order = o;
+    rememberOrder(o);
     renderOrder(true);
 };
 
@@ -1606,7 +1704,9 @@ actions.clearHistory = async () => {
     if (!confirm('確定要清除所有訂單紀錄（含照片）嗎？')) return;
     state.history = [];
     save(STORAGE_KEYS.history, []);
-    for (const k of await idbKeys()) idbDelete(k);
+    for (const k of await idbKeys()) if (k !== DRAFT_PHOTOS) idbDelete(k);
+    remove(STORAGE_KEYS.current);
+    remove(STORAGE_KEYS.chatDrafts);
     closeHistoryModal();
     updateHistoryButton();
     toast('已清除訂單紀錄', 'success');
