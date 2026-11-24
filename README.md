@@ -18,22 +18,10 @@
 - 每張收據：聊天微調、切換與**並排比較版本**、單道重做、**發文前檢查**（錯字、容易過時的資訊、平台限制）、存成圖片
 - 常用 Hashtag、外語版本（英／日／韓）、收藏、店家／景點資訊（Claude 上網查詢）
 - 重新整理不會弄丟：照片、出餐區、出單中的進度、打到一半的字都會保留
-- 訂單紀錄（含照片）存在瀏覽器裡；可匯出／匯入，或備份到 **Google 雲端硬碟**
+- 訂單紀錄（含照片）存在瀏覽器裡；可匯出／匯入備份檔
 - 每單與累計的估算費用、**每月預算提醒**
 - PWA：可安裝到手機主畫面、沒網路也能打開、有新版本會提示
 - 鍵盤操作與讀屏軟體：對話框焦點管理、Tab 循環、跳到點單的連結
-
-## Google 雲端硬碟備份（選用）
-
-需要一組 Google OAuth 用戶端 ID（免費，一次性設定）：
-
-1. 到 [Google Cloud Console](https://console.cloud.google.com/) 建立專案
-2. 「API 和服務 → 程式庫」啟用 **Google Drive API**
-3. 「OAuth 同意畫面」選「外部」，填 App 名稱與 Email，把自己加為測試使用者
-4. 「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選「網頁應用程式」，「已授權的 JavaScript 來源」填 `https://polo1364.github.io`
-5. 把用戶端 ID 貼到網站「設定 → Google 雲端硬碟備份」，或寫進 `public/js/sync.js` 的 `DEFAULT_GOOGLE_CLIENT_ID`
-
-只會使用 `drive.appdata` 權限（本 App 專用的隱藏資料夾），看不到雲端硬碟裡的其他檔案。
 
 ## 本機預覽
 
@@ -54,7 +42,7 @@ npm start
   - `form.js` 點單表、`profiles.js` 口吻／套餐／預算
   - `order.js` 出單與收據、`compare.js` 版本比較、`check.js` 發文前檢查
   - `publish.js` 準備發文、`overlay.js` 照片加字
-  - `history.js` 訂單紀錄與還原、`sync.js` Google 雲端備份
+  - `history.js` 訂單紀錄、重整還原、匯出匯入
   - `settings.js` 設定、`pwa.js` 安裝與更新、`a11y.js` 鍵盤與讀屏
 - `sw.js`、`manifest.webmanifest`：PWA
 

@@ -16,9 +16,7 @@ import { closePresetModal, closeVoiceModal, renderPresets, renderVoiceStatus, re
 import './js/profiles.js';
 import './js/compare.js';
 import './js/check.js';
-import './js/sync.js';
 import { setupA11y } from './js/a11y.js';
-import { onSyncAutoChange } from './js/sync.js';
 import { closeCheck } from './js/check.js';
 import { closeCompare, onCompareSelect } from './js/compare.js';
 import { onOverlayInput } from './js/publish.js';
@@ -59,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('voice-name').addEventListener('input', saveVoiceDraft);
     ['overlay-title', 'overlay-sub'].forEach(id => $(id).addEventListener('input', onOverlayInput));
     $('overlay-all').addEventListener('change', onOverlayInput);
-    $('sync-auto').addEventListener('change', onSyncAutoChange);
     $('compare-a').addEventListener('change', e => onCompareSelect('a', e.target.value));
     $('compare-b').addEventListener('change', e => onCompareSelect('b', e.target.value));
     $('preset-name').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) actions.savePreset(); });

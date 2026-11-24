@@ -1,7 +1,6 @@
 // 貼文廚房 · 設定：API Key、模型、匯率
 import { $, MODELS, STORAGE_KEYS, actions, ic, remove, renderOrderCost, renderSpend, save, state, toast } from './core.js';
 import { renderBudget, saveBudgetInput } from './profiles.js';
-import { clientId, renderSyncStatus } from './sync.js';
 import { checkBtnState } from './order.js';
 
 // ===== 金鑰與設定 =====
@@ -47,8 +46,6 @@ export function showKeyModal() {
     $('rate-input').value = state.rate;
     renderSpend();
     renderBudget();
-    $('google-client-id').value = clientId();
-    renderSyncStatus();
     $('key-modal').classList.remove('hidden');
     setTimeout(() => input.focus(), 50);
 }

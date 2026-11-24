@@ -131,9 +131,7 @@ export const STORAGE_KEYS = {
     voiceId: 'post_creator_voice_id',
     presets: 'post_creator_presets',
     monthSpend: 'post_creator_month_spend',
-    budget: 'post_creator_budget',
-    googleClientId: 'post_creator_google_client_id',
-    lastSync: 'post_creator_last_sync'
+    budget: 'post_creator_budget'
 };
 export const DRAFT_PHOTOS = 'draft-photos';
 

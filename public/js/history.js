@@ -1,6 +1,5 @@
 // 貼文廚房 · 訂單紀錄、重整還原、匯出匯入
 import { $, DRAFT_PHOTOS, HISTORY_LIMIT, LANGUAGES, PLATFORMS, STORAGE_KEYS, actions, escapeHtml, ic, idbDelete, idbGet, idbKeys, idbPut, load, remove, save, saveInputs, state, toast } from './core.js';
-import { scheduleAutoBackup } from './sync.js';
 import { mergePresets, mergeVoices } from './profiles.js';
 import { renderStyles } from './form.js';
 import { storeCopy } from './form.js';
@@ -63,7 +62,6 @@ export function storeHistory() {
     save(STORAGE_KEYS.history, state.history);
     dropped.forEach(h => idbDelete(h.id));
     updateHistoryButton();
-    scheduleAutoBackup();
 }
 
 export function saveOrder(o, isNew = false) {
@@ -200,7 +198,7 @@ actions.clearHistory = async () => {
 };
 
 // 匯出／匯入（JSON 備份；不含照片）
-// 備份內容（匯出檔與 Google 雲端備份共用；不含照片）
+// 備份內容（匯出檔用；不含照片）
 export function buildBackup() {
     return {
         app: 'post-kitchen',
