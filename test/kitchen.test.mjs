@@ -197,3 +197,24 @@ test('品項：自訂風格會帶進提示詞，格式不對的會被過濾', ()
     const redo = K.buildCaptionRequest({ images: [img], redoStyle: 'custom-1', customStyles, avoidCaption: '舊的' });
     assert.match(redo.params.messages[0].content.at(-1).text, /阿嬤碎念風/);
 });
+
+test('發文前檢查：本機檢查平台限制', () => {
+    assert.match(K.localChecks('x'.repeat(520), 'threads')[0].note, /上限 500 字/);
+    assert.match(K.localChecks('好吃 #a #b #c #d', 'facebook')[0].note, /Hashtag 0–3 個，目前 4 個/);
+    assert.deepEqual(K.localChecks('好吃 #a', 'facebook'), []);
+});
+
+test('發文前檢查：請求組裝與結果合併', async () => {
+    assert.throws(() => K.buildCheckRequest({ caption: ' ' }), /缺少/);
+    const { params } = K.buildCheckRequest({ caption: '今天吃了鬆餅', platform: 'facebook', imageAnalysis: { summary: '鬆餅' } });
+    assert.equal(params.output_config.format.schema, K.CHECK_SCHEMA);
+    assert.match(params.messages[0].content, /今天吃了鬆餅/);
+    assert.match(params.messages[0].content, /照片內容：鬆餅/);
+    const client = { beta: { messages: { async create() {
+        return { stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 50 }, content: [{ type: 'text', text: JSON.stringify({ issues: [{ type: '錯字', quote: '鬆餅', note: '應為鬆餅', suggestion: '鬆餅' }], fixed_caption: '今天吃了鬆餅！' }) }] };
+    } } } };
+    const r = await K.checkCaption(client, { caption: '今天吃了鬆餅 #a #b #c #d', platform: 'facebook', model: 'claude-haiku-5-5' });
+    assert.equal(r.issues.length, 2); // 本機的 Hashtag 檢查 + AI 的錯字
+    assert.equal(r.changed, true);
+    assert.equal(r.fixedCaption, '今天吃了鬆餅！');
+});

@@ -243,3 +243,20 @@ input[type=range] { accent-color: var(--ink); }
 
 /* 自訂了 display 的元件，加上 hidden 時仍要隱藏（app.css 在 Tailwind 之後載入會蓋掉 .hidden） */
 .pill.hidden, .thread.hidden, .chat.hidden, .seg.hidden { display: none; }
+
+/* 套餐 */
+.preset-chip { display: inline-flex; align-items: stretch; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; font-size: .82rem; font-weight: 700; }
+.preset-chip button { padding: .3rem .7rem; transition: background .12s; }
+.preset-chip button:hover { background: rgba(0,0,0,0.06); }
+.preset-chip button + button { border-left: 1.5px solid var(--ink); padding: .3rem .5rem; color: var(--ink-3); }
+
+/* 預算 */
+.budget-track { height: 6px; background: var(--paper-2); border-radius: 999px; overflow: hidden; }
+.budget-bar { height: 100%; background: var(--ink); width: 0; transition: width .3s; }
+.budget-bar.over { background: var(--stamp); }
+
+/* 鍵盤操作 */
+.skip-link { position: absolute; left: 1rem; top: -3rem; z-index: 70; background: var(--paper); color: var(--ink); padding: .5rem .9rem; border-radius: .4rem; font-weight: 700; transition: top .15s; }
+.skip-link:focus { top: 1rem; }
+body.kbd :focus-visible { outline: 3px solid #ffb37a; outline-offset: 2px; border-radius: .3rem; }
+body.kbd .paper :focus-visible { outline-color: var(--stamp); }

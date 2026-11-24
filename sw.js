@@ -4,12 +4,12 @@
 // - Claude API 一律不經過快取
 // - 分享目標：接住從相簿「分享」過來的照片，暫存後導回首頁
 // - 新版本：安裝好後先等待，使用者按「重新整理」才切換（避免出單到一半被換掉）
-const VERSION = 'v7';
+const VERSION = 'v9';
 const SHELL_CACHE = `shell-${VERSION}`;
 const CDN_CACHE = 'cdn-v1';
 const SHARE_CACHE = 'share-inbox';
 const BASE = new URL('./', self.location).href;
-const SHELL = ['./', 'public/styles.css', 'public/app.css', 'public/app.js', 'public/kitchen.js', 'public/icons.svg', 'manifest.webmanifest', 'public/icons/icon-192.png', 'public/icons/icon-512.png']
+const SHELL = ['./', 'public/styles.css', 'public/app.css', 'public/app.js', 'public/kitchen.js', 'public/js/base.js', 'public/js/core.js', 'public/js/pwa.js', 'public/js/settings.js', 'public/js/form.js', 'public/js/order.js', 'public/js/publish.js', 'public/js/history.js', 'public/js/profiles.js', 'public/js/overlay.js', 'public/js/compare.js', 'public/js/check.js', 'public/js/sync.js', 'public/js/a11y.js', 'public/icons.svg', 'manifest.webmanifest', 'public/icons/icon-192.png', 'public/icons/icon-512.png']
     .map(p => new URL(p, BASE).href);
 const CDN_HOSTS = ['esm.sh', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 

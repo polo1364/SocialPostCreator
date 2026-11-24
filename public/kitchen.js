@@ -581,3 +581,83 @@ export async function searchPlace(client, { placeName, location, placeType, mode
     }
     return { placeInfo, cost };
 }
+
+// ===== 發文前檢查 =====
+export const CHECK_SCHEMA = {
+    type: 'object',
+    properties: {
+        issues: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', enum: ['錯字', '語句', '可能過時', '事實', '平台限制', '其他'] },
+                    quote: { type: 'string' },
+                    note: { type: 'string' },
+                    suggestion: { type: 'string' }
+                },
+                required: ['type', 'quote', 'note', 'suggestion'],
+                additionalProperties: false
+            }
+        },
+        fixed_caption: { type: 'string' }
+    },
+    required: ['issues', 'fixed_caption'],
+    additionalProperties: false
+};
+
+// 不用 AI 就能檢查的項目：平台字數上限、Hashtag 數量
+export function localChecks(caption, platform) {
+    const out = [];
+    const p = PLATFORMS[resolvePlatform(platform)];
+    const len = [...String(caption || '')].length;
+    if (p.limit && len > p.limit) out.push({ type: '平台限制', quote: '', note: `${p.name} 上限 ${p.limit} 字，目前 ${len} 字`, suggestion: `刪減約 ${len - p.limit} 字` });
+    const tags = (String(caption || '').match(/#[^\s#]+/g) || []).length;
+    const tagRule = { facebook: [0, 3], threads: [0, 1], instagram: [0, 10], xiaohongshu: [0, 10] }[resolvePlatform(platform)];
+    if (tagRule && tags > tagRule[1]) out.push({ type: '平台限制', quote: '', note: `${p.name} 建議 Hashtag ${tagRule[0]}–${tagRule[1]} 個，目前 ${tags} 個`, suggestion: '保留最重要的幾個' });
+    return out;
+}
+
+export function buildCheckRequest(opts) {
+    const { caption, platform, placeInfo, imageAnalysis } = opts || {};
+    if (typeof caption !== 'string' || !caption.trim()) throw new Error('缺少要檢查的貼文');
+    const model = resolveModel(opts.model);
+    const platformKey = resolvePlatform(platform);
+    const a = imageAnalysis && typeof imageAnalysis === 'object' ? imageAnalysis : null;
+    const system = `你是台灣社群小編的校稿助手。只挑真正需要修改的地方，不要為了挑而挑；文風、Emoji、口語是刻意的，不算錯。
+全程使用繁體中文。`;
+    const prompt = `${a?.summary ? `照片內容：${a.summary}\n` : ''}${buildPlaceContext(placeInfo)}
+${buildPlatformContext(platformKey)}
+
+<caption>
+${caption.slice(0, 3000)}
+</caption>
+
+請檢查這則貼文，issues 列出要注意的地方（沒有就給空陣列）：
+- 錯字：錯別字、同音字誤用、簡體字混入
+- 語句：不通順、重複、前後矛盾
+- 可能過時：價格、營業時間、日期、「限時」「期間限定」「最新」等會隨時間失效的資訊，提醒發文前再確認
+- 事實：和照片內容或店家資料對不起來的描述
+- 平台限制：長度、Hashtag 數量不符合平台習慣
+quote 填原文中有問題的片段（照抄），note 說明問題，suggestion 給建議寫法。
+fixed_caption 填修正後的完整貼文：只改有問題的地方，其他字一個都不要動；「可能過時」類只提醒、不要改內容。沒有要改的就原文照填。`;
+    const params = buildParams(model, {
+        max_tokens: 8000,
+        system,
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: CHECK_SCHEMA } },
+        messages: [{ role: 'user', content: prompt }]
+    });
+    return { params, model };
+}
+
+export async function checkCaption(client, opts) {
+    const { params, model } = buildCheckRequest(opts);
+    const response = await client.beta.messages.create(params);
+    const cost = estimateCost(model, response.usage);
+    if (response.stop_reason === 'refusal') throw Object.assign(new Error('這則貼文無法檢查，換個說法試試'), { cost });
+    const data = safeJsonParse(cleanJson(lastText(response)), null);
+    if (!data || !Array.isArray(data.issues)) throw Object.assign(new Error('AI 回應格式錯誤，請重試'), { cost });
+    const issues = [...localChecks(opts.caption, opts.platform), ...data.issues.filter(x => x && x.note)];
+    const fixed = typeof data.fixed_caption === 'string' && data.fixed_caption.trim() ? data.fixed_caption.trim() : opts.caption;
+    return { issues, fixedCaption: fixed, changed: fixed !== opts.caption.trim(), model, cost };
+}

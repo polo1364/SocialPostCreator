@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="貼文廚房：上傳照片點單，Claude 幫你出單臉書貼文，還能像聊天一樣微調">
     <meta name="theme-color" content="#1f1f22">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' blob: data: https://api.anthropic.com https://esm.sh https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' blob: data: https://api.anthropic.com https://www.googleapis.com https://accounts.google.com https://esm.sh https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://accounts.google.com">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>貼文廚房 · AI 社群貼文產生器</title>
     <link rel="manifest" href="manifest.webmanifest">
@@ -24,6 +24,7 @@
     <script type="module" src="public/app.js"></script>
 </head>
 <body class="py-6 sm:py-8 px-4">
+    <a href="#order-form" class="skip-link">跳到點單</a>
 
     <!-- 離線提示 -->
     <div id="offline-bar" class="hidden fixed top-0 inset-x-0 z-[55] bg-[color:var(--stamp)] text-white text-center text-sm font-bold py-1.5">
@@ -53,7 +54,7 @@
     </nav>
 
     <!-- 點單表 -->
-    <main class="max-w-xl mx-auto paper-wrap mb-10">
+    <main id="order-form" tabindex="-1" class="max-w-xl mx-auto paper-wrap mb-10">
         <div class="paper">
             <div class="text-center">
                 <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)]">ORDER · 點單</p>
@@ -61,6 +62,16 @@
                 <p class="text-sm text-[color:var(--ink-2)] mt-1">照片交給廚房，Claude 幫你出單貼文</p>
             </div>
             <hr class="rule-double">
+
+            <!-- 套餐 -->
+            <section aria-label="套餐">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="sec-title">套餐</span>
+                    <button type="button" data-action="showSavePreset" class="btn-line px-3 py-1 text-xs"><svg class="ic mr-1"><use href="public/icons.svg#plus"/></svg>把目前設定存成套餐</button>
+                </div>
+                <div id="preset-chips" class="flex flex-wrap gap-2"></div>
+            </section>
+            <hr class="rule">
 
             <!-- 01 照片 -->
             <section>
@@ -151,12 +162,11 @@
             <!-- 07–09 口吻、Hashtag、外語 -->
             <section class="space-y-4">
                 <div>
-                    <div class="sec-head"><span class="sec-no">07</span><span class="sec-title">我的口吻</span><span class="sec-hint">選填，貼幾篇你寫過的貼文讓它模仿</span></div>
-                    <div class="flex items-center justify-between gap-3">
-                        <button type="button" data-action="toggleVoice" class="flex items-center gap-2 text-sm" aria-label="切換模仿我的口吻">
-                            <span id="voice-switch" class="switch"></span><span id="voice-status">未設定</span>
-                        </button>
-                        <button type="button" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>編輯範例</button>
+                    <div class="sec-head"><span class="sec-no">07</span><span class="sec-title">口吻</span><span class="sec-hint">選填，例如「個人帳號」「店家粉專」各一組</span></div>
+                    <div id="voice-chips" class="plat" role="radiogroup" aria-label="使用哪一組口吻"></div>
+                    <div class="flex items-center justify-between gap-3 mt-2">
+                        <span id="voice-status" class="text-xs text-[color:var(--ink-3)]"></span>
+                        <button type="button" id="voice-edit-btn" data-action="showVoiceModal" class="btn-line px-3 py-1.5 text-xs hidden"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>編輯範例</button>
                     </div>
                 </div>
                 <div>
@@ -199,7 +209,7 @@
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
             <div>
                 <p class="mono text-xs tracking-[.3em] text-white/50">PICK UP · 出餐區</p>
-                <h2 id="result-title" class="text-2xl font-black text-white mt-1">你的貼文好了</h2>
+                <h2 id="result-title" class="text-2xl font-black text-white mt-1" aria-live="polite">你的貼文好了</h2>
                 <p id="result-meta" class="text-xs text-white/50 mt-1 mono"></p>
                 <p id="result-cost" class="text-xs text-white/50 mt-0.5 mono"></p>
             </div>
@@ -249,7 +259,46 @@
                     <span>台幣匯率（1 美元＝？元）</span>
                     <input type="number" id="rate-input" min="1" max="100" step="0.1" class="field mono w-24 text-right">
                 </label>
-                <p class="text-xs text-[color:var(--ink-3)] mt-1">依官方牌價估算，實際以 Anthropic 帳單為準。</p>
+                <label class="flex items-center justify-between gap-3 mt-2 text-sm">
+                    <span>每月預算（新台幣，0 = 不限）</span>
+                    <input type="number" id="budget-input" min="0" step="10" class="field mono w-24 text-right" placeholder="0">
+                </label>
+                <p id="month-spend" class="text-xs mono mt-1"></p>
+                <div id="budget-bar-wrap" class="budget-track mt-1 hidden"><div id="budget-bar" class="budget-bar"></div></div>
+                <p class="text-xs text-[color:var(--ink-3)] mt-1">依官方牌價估算，實際以 Anthropic 帳單為準；快到預算時會提醒，超過時出單前會先問你。</p>
+
+                <hr class="rule">
+                <p class="sec-title mb-1">Google 雲端硬碟備份</p>
+                <p class="text-xs text-[color:var(--ink-2)]">把訂單紀錄、口吻、套餐、自訂品項備份到你的 Google 雲端硬碟，換手機或電腦也找得回來（不含照片）。只會存取本 App 專用的隱藏資料夾，看不到你雲端硬碟的其他檔案。</p>
+                <div id="sync-setup" class="mt-2">
+                    <label for="google-client-id" class="text-xs font-bold">Google OAuth 用戶端 ID</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="text" id="google-client-id" class="field mono text-xs flex-1" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+                        <button type="button" data-action="saveGoogleClientId" class="btn-line px-3 text-xs shrink-0">儲存</button>
+                    </div>
+                    <details class="text-xs text-[color:var(--ink-2)] mt-2">
+                        <summary class="cursor-pointer font-bold">怎麼取得？（一次性設定，約 5 分鐘）</summary>
+                        <ol class="list-decimal pl-5 mt-1 space-y-1">
+                            <li>到 <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="underline">Google Cloud Console</a> 建立一個專案</li>
+                            <li>「API 和服務 → 程式庫」啟用 <b>Google Drive API</b></li>
+                            <li>「OAuth 同意畫面」選「外部」，填 App 名稱與你的 Email，並把自己加為測試使用者</li>
+                            <li>「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選「網頁應用程式」</li>
+                            <li>「已授權的 JavaScript 來源」填 <code>https://polo1364.github.io</code></li>
+                            <li>把產生的用戶端 ID 貼到上面</li>
+                        </ol>
+                    </details>
+                </div>
+                <div id="sync-actions" class="hidden mt-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" data-action="backupNow" class="btn-ink py-2 text-sm"><svg class="ic mr-1"><use href="public/icons.svg#export"/></svg>立即備份</button>
+                        <button type="button" data-action="restoreNow" class="btn-line py-2 text-sm"><svg class="ic mr-1"><use href="public/icons.svg#import"/></svg>從雲端還原</button>
+                    </div>
+                    <label class="flex items-center gap-2 text-xs mt-2 cursor-pointer"><input type="checkbox" id="sync-auto"> 這次開著網頁時自動備份（訂單有變動就上傳）</label>
+                    <div class="flex items-center justify-between gap-2 mt-1">
+                        <p id="sync-status" class="text-xs text-[color:var(--ink-3)]" aria-live="polite"></p>
+                        <button type="button" data-action="resetGoogleClientId" class="text-xs underline text-[color:var(--ink-3)] shrink-0">更換用戶端 ID</button>
+                    </div>
+                </div>
 
                 <hr class="rule">
                 <p class="text-xs text-[color:var(--ink-2)] leading-relaxed"><svg class="ic mr-1"><use href="public/icons.svg#shield"/></svg>Key 只存在這台裝置的瀏覽器。每次出單時隨請求送到本站伺服器、再轉給 Anthropic，伺服器不保存；用量計入你自己的 Anthropic 帳戶。</p>
@@ -269,13 +318,16 @@
         <div class="modal-in paper-wrap w-full max-w-lg my-6" role="dialog" aria-modal="true" aria-labelledby="voice-title">
             <div class="paper">
                 <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)] text-center">HOUSE STYLE</p>
-                <h2 id="voice-title" class="text-xl font-black text-center mt-1">我的口吻</h2>
+                <h2 id="voice-title" class="text-xl font-black text-center mt-1">口吻</h2>
                 <hr class="rule-double">
+                <label for="voice-name" class="block text-sm font-bold mb-1">這組口吻叫什麼？</label>
+                <input type="text" id="voice-name" class="field mb-4" maxlength="12" placeholder="個人帳號／店家粉專">
                 <p class="text-sm text-[color:var(--ink-2)] mb-3">貼 2–5 篇你以前發過的貼文，每篇之間空一行。Claude 會學你的用字、句子長短、標點和 Emoji 習慣，只學語氣、不抄內容。</p>
                 <textarea id="voice-input" rows="10" maxlength="3000" class="field" placeholder="今天終於吃到排了兩小時的拉麵🍜 湯頭真的會讓人閉眼睛…&#10;&#10;週末不出門就是對不起自己 #台中散步"></textarea>
                 <div class="flex justify-between mt-1 text-xs text-[color:var(--ink-3)]"><span>只存在這台裝置</span><span id="voice-count" class="mono">0/3000</span></div>
                 <div class="flex gap-2 mt-5">
-                    <button data-action="clearVoice" class="btn-line px-3 py-2.5 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)]">清空</button>
+                    <button data-action="deleteVoice" id="voice-delete-btn" class="btn-line px-3 py-2.5 text-sm text-[color:var(--stamp)] border-[color:var(--stamp)] hidden">刪除</button>
+                    <button data-action="clearVoice" class="btn-line px-3 py-2.5 text-sm">清空</button>
                     <div class="flex-1"></div>
                     <button data-action="closeVoiceModal" class="btn-line px-4 py-2.5 text-sm">取消</button>
                     <button data-action="saveVoice" class="btn-ink px-5 py-2.5 text-sm">儲存並啟用</button>
@@ -301,6 +353,17 @@
                     <span id="crop-pos-label" class="shrink-0">位置</span>
                     <input type="range" id="crop-pos" min="0" max="100" value="50" class="flex-1">
                 </label>
+
+                <p class="sec-title mt-4 mb-2"><svg class="ic mr-1"><use href="public/icons.svg#pen"/></svg>照片加字 <span class="sec-hint">做成貼文配圖</span></p>
+                <div id="overlay-styles" class="ratio-btns" role="radiogroup" aria-label="加字樣式"></div>
+                <div id="overlay-fields" class="hidden mt-3 space-y-2">
+                    <input type="text" id="overlay-title" class="field" maxlength="24" placeholder="標題，例如：週末早午餐" aria-label="配圖標題">
+                    <input type="text" id="overlay-sub" class="field" maxlength="30" placeholder="副標，例如：店名・價格" aria-label="配圖副標">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 text-sm"><span class="text-[color:var(--ink-2)]">位置</span><div id="overlay-positions" class="seg"></div></div>
+                        <label id="overlay-all-wrap" class="text-xs flex items-center gap-1 cursor-pointer"><input type="checkbox" id="overlay-all"> 每張照片都加</label>
+                    </div>
+                </div>
 
                 <hr class="rule">
                 <p class="sec-title mb-2"><svg class="ic mr-1"><use href="public/icons.svg#a11y"/></svg>替代文字 <span class="sec-hint">貼到臉書照片的「編輯 → 替代文字」</span></p>
@@ -370,6 +433,67 @@
                     <button data-action="closeCustomStyle" class="btn-line px-4 py-2.5 text-sm">取消</button>
                     <button data-action="saveCustomStyle" class="btn-ink px-5 py-2.5 text-sm">加入菜單</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 存成套餐 -->
+    <div id="preset-modal" data-backdrop="closePresetModal" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="modal-in paper-wrap w-full max-w-md my-6" role="dialog" aria-modal="true" aria-labelledby="preset-title">
+            <div class="paper">
+                <p class="mono text-xs tracking-[.3em] text-[color:var(--ink-3)] text-center">SET MENU</p>
+                <h2 id="preset-title" class="text-xl font-black text-center mt-1">存成套餐</h2>
+                <hr class="rule-double">
+                <label for="preset-name" class="block text-sm font-bold mb-1">套餐名稱</label>
+                <input type="text" id="preset-name" class="field" maxlength="12" placeholder="美食粉專套餐">
+                <p class="text-xs text-[color:var(--ink-3)] mt-3">會記住：</p>
+                <p id="preset-summary" class="text-sm mt-1 bg-[color:var(--paper-2)] rounded p-2"></p>
+                <div class="flex gap-2 mt-5">
+                    <div class="flex-1"></div>
+                    <button data-action="closePresetModal" class="btn-line px-4 py-2.5 text-sm">取消</button>
+                    <button data-action="savePreset" class="btn-ink px-5 py-2.5 text-sm">存起來</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 比較版本 -->
+    <div id="compare-modal" data-backdrop="closeCompare" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="modal-in paper-wrap w-full max-w-3xl my-6" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+            <div class="paper">
+                <div class="flex items-center justify-between">
+                    <h2 id="compare-title" class="text-xl font-black">比較版本</h2>
+                    <button data-action="closeCompare" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉" aria-label="關閉"><svg class="ic text-lg"><use href="public/icons.svg#x"/></svg></button>
+                </div>
+                <hr class="rule-double">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="border-[1.5px] border-[color:var(--rule)] rounded p-3 flex flex-col">
+                        <select id="compare-a" class="field mono text-sm" aria-label="左邊的版本"></select>
+                        <p id="compare-a-text" class="text-sm whitespace-pre-wrap break-words leading-relaxed mt-3 flex-1"></p>
+                        <p id="compare-a-count" class="mono text-xs text-[color:var(--ink-3)] mt-2"></p>
+                        <button data-action="useCompare" data-v="a" id="compare-a-use" class="btn-ink py-2 text-sm mt-2">用這版</button>
+                    </div>
+                    <div class="border-[1.5px] border-[color:var(--rule)] rounded p-3 flex flex-col">
+                        <select id="compare-b" class="field mono text-sm" aria-label="右邊的版本"></select>
+                        <p id="compare-b-text" class="text-sm whitespace-pre-wrap break-words leading-relaxed mt-3 flex-1"></p>
+                        <p id="compare-b-count" class="mono text-xs text-[color:var(--ink-3)] mt-2"></p>
+                        <button data-action="useCompare" data-v="b" id="compare-b-use" class="btn-ink py-2 text-sm mt-2">用這版</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 發文前檢查 -->
+    <div id="check-modal" data-backdrop="closeCheck" class="fixed inset-0 modal-backdrop z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="modal-in paper-wrap w-full max-w-lg my-6" role="dialog" aria-modal="true" aria-labelledby="check-title">
+            <div class="paper">
+                <div class="flex items-center justify-between">
+                    <h2 id="check-title" class="text-xl font-black"><svg class="ic mr-1"><use href="public/icons.svg#check"/></svg>發文前檢查</h2>
+                    <button data-action="closeCheck" class="w-8 h-8 text-[color:var(--ink-3)] hover:text-[color:var(--ink)]" title="關閉" aria-label="關閉"><svg class="ic text-lg"><use href="public/icons.svg#x"/></svg></button>
+                </div>
+                <hr class="rule-double">
+                <div id="check-body" aria-live="polite"></div>
             </div>
         </div>
     </div>

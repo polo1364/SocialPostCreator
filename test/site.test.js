@@ -14,7 +14,7 @@ test.before(async () => {
 });
 test.after(() => new Promise(resolve => server.close(resolve)));
 
-const ASSETS = ['', 'sw.js', 'manifest.webmanifest', 'public/styles.css', 'public/app.css', 'public/app.js', 'public/kitchen.js', 'public/icons.svg', 'public/icons/icon-192.png'];
+const ASSETS = ['', 'sw.js', 'manifest.webmanifest', 'public/styles.css', 'public/app.css', 'public/app.js', 'public/kitchen.js', 'public/js/core.js', 'public/js/order.js', 'public/icons.svg', 'public/icons/icon-192.png'];
 
 for (const prefix of ['/', '/SocialPostCreator/']) {
     test(`網站檔案可載入：${prefix}`, async () => {
@@ -71,4 +71,40 @@ test('PWA 可安裝的條件都齊全', () => {
     assert.match(html, /rel="manifest"/);
     assert.match(html, /rel="apple-touch-icon"/);
     assert.match(html, /id="install-modal"/);
+});
+
+test('前端模組：每個 import 的名稱都真的有被 export', () => {
+    const dir = path.join(__dirname, '..', 'public');
+    const files = ['app.js', ...fs.readdirSync(path.join(dir, 'js')).map(f => `js/${f}`)];
+    const exportsOf = {};
+    for (const f of [...files, 'kitchen.js']) {
+        const code = fs.readFileSync(path.join(dir, f), 'utf8');
+        exportsOf[f] = new Set([
+            ...[...code.matchAll(/^export\s+(?:async\s+)?(?:function|const|let)\s+([\w$]+)/gm)].map(m => m[1]),
+            ...[...code.matchAll(/^export\s+\{([^}]+)\}/gm)].flatMap(m => m[1].split(',').map(s => s.trim()))
+        ]);
+    }
+    for (const f of files) {
+        const code = fs.readFileSync(path.join(dir, f), 'utf8');
+        for (const m of code.matchAll(/^import\s+\{([^}]+)\}\s+from\s+'([^']+)'/gm)) {
+            const target = path.posix.normalize(path.posix.join(path.posix.dirname(f), m[2]));
+            assert.ok(exportsOf[target], `${f} 匯入了不存在的檔案 ${m[2]}`);
+            for (const name of m[1].split(',').map(s => s.trim()).filter(Boolean)) {
+                assert.ok(exportsOf[target].has(name), `${f} 從 ${m[2]} 匯入的 ${name} 不存在`);
+            }
+        }
+    }
+});
+
+test('service worker 的離線清單裡每個檔案都存在', () => {
+    const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+    const list = sw.match(/const SHELL = \[([^\]]+)\]/)[1].match(/'([^']+)'/g).map(s => s.slice(1, -1)).filter(p => p !== './');
+    for (const p of list) assert.ok(fs.existsSync(path.join(__dirname, '..', p)), `離線清單裡的檔案不存在：${p}`);
+    const js = fs.readdirSync(path.join(__dirname, '..', 'public', 'js'));
+    for (const f of js) assert.ok(list.includes(`public/js/${f}`), `public/js/${f} 沒有放進離線清單`);
+});
+
+test('base.js 不 import 任何東西（必須最先載入）', () => {
+    const code = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'base.js'), 'utf8');
+    assert.doesNotMatch(code, /^import /m);
 });

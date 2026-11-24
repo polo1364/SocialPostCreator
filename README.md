@@ -9,16 +9,31 @@
 ## 功能
 
 - 一次最多 5 張照片，自動轉正並調整到最適合辨識的解析度
-- 先辨識照片（主廚筆記），再依風格寫 3–5 則貼文，邊寫邊印出來
-- 主要為臉書設計：預設臉書寫法；「準備發文」可裁成臉書比例（1:1、4:5、1.91:1、限動 9:16）、複製替代文字，手機一鍵分享照片＋文案
+- 先辨識照片（主廚筆記），再依風格寫貼文，邊寫邊印出來
+- 品項（風格）：14 種內建＋自訂；單選（1 種出 1–3 份）或複選（1–6 種）
+- **套餐**：把平台、品項、Hashtag、外語、口吻存成一組，一鍵套用
+- **多組口吻**：例如「個人帳號」「店家粉專」，各自模仿不同語氣
+- 主要為臉書設計：「準備發文」可裁成臉書比例、**照片加字做配圖**、複製替代文字、手機一鍵分享照片＋文案
 - 也支援 IG、Threads、小紅書，會依平台調整長度、換行與 Hashtag
-- 常用 Hashtag、外語版本（英／日／韓）、收藏、紀錄匯出／匯入
-- 「我的口吻」：貼幾篇自己寫過的貼文，讓 Claude 模仿你的語氣
-- 店家／景點資訊：Claude 上網查詢後融入貼文
-- 每張收據都能聊天微調、切換版本、單道重做、存成圖片
-- 訂單紀錄（含照片）存在瀏覽器裡，可重新打開接著改
-- 顯示每單與累計的估算費用
-- PWA：可加到手機主畫面，從相簿「分享」照片直接送進來
+- 每張收據：聊天微調、切換與**並排比較版本**、單道重做、**發文前檢查**（錯字、容易過時的資訊、平台限制）、存成圖片
+- 常用 Hashtag、外語版本（英／日／韓）、收藏、店家／景點資訊（Claude 上網查詢）
+- 重新整理不會弄丟：照片、出餐區、出單中的進度、打到一半的字都會保留
+- 訂單紀錄（含照片）存在瀏覽器裡；可匯出／匯入，或備份到 **Google 雲端硬碟**
+- 每單與累計的估算費用、**每月預算提醒**
+- PWA：可安裝到手機主畫面、沒網路也能打開、有新版本會提示
+- 鍵盤操作與讀屏軟體：對話框焦點管理、Tab 循環、跳到點單的連結
+
+## Google 雲端硬碟備份（選用）
+
+需要一組 Google OAuth 用戶端 ID（免費，一次性設定）：
+
+1. 到 [Google Cloud Console](https://console.cloud.google.com/) 建立專案
+2. 「API 和服務 → 程式庫」啟用 **Google Drive API**
+3. 「OAuth 同意畫面」選「外部」，填 App 名稱與 Email，把自己加為測試使用者
+4. 「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選「網頁應用程式」，「已授權的 JavaScript 來源」填 `https://polo1364.github.io`
+5. 把用戶端 ID 貼到網站「設定 → Google 雲端硬碟備份」，或寫進 `public/js/sync.js` 的 `DEFAULT_GOOGLE_CLIENT_ID`
+
+只會使用 `drive.appdata` 權限（本 App 專用的隱藏資料夾），看不到雲端硬碟裡的其他檔案。
 
 ## 本機預覽
 
@@ -27,13 +42,20 @@ npm install
 npm start
 ```
 
-打開 http://localhost:3000 （或 http://localhost:3000/SocialPostCreator/ 模擬 GitHub Pages 子路徑），在右上角設定填入自己的 Claude API Key（到 [Anthropic Console](https://console.anthropic.com/settings/keys) 取得）。`server.js` 只是本機預覽用的靜態伺服器。
+打開 http://localhost:3000 （或 http://localhost:3000/SocialPostCreator/ 模擬 GitHub Pages 子路徑）。`server.js` 只是本機預覽用的靜態伺服器。
 
 ## 程式結構
 
 - `index.html`：版面
-- `public/app.js`：畫面與互動
 - `public/kitchen.js`：提示詞、結構化輸出與呼叫 Claude 的流程（瀏覽器與 Node 共用）
+- `public/app.js`：進入點與初始化
+- `public/js/`：畫面邏輯，依功能分檔
+  - `base.js` 動作登記表（最先載入）、`core.js` 共用狀態與工具
+  - `form.js` 點單表、`profiles.js` 口吻／套餐／預算
+  - `order.js` 出單與收據、`compare.js` 版本比較、`check.js` 發文前檢查
+  - `publish.js` 準備發文、`overlay.js` 照片加字
+  - `history.js` 訂單紀錄與還原、`sync.js` Google 雲端備份
+  - `settings.js` 設定、`pwa.js` 安裝與更新、`a11y.js` 鍵盤與讀屏
 - `sw.js`、`manifest.webmanifest`：PWA
 
 所有路徑都是相對路徑，放在 GitHub Pages 的子路徑也能正常運作。
@@ -41,11 +63,13 @@ npm start
 ## 開發
 
 ```bash
-npm test            # 自動測試（不會呼叫真正的 Claude API）
-npm run build:css   # 修改 index.html 的 Tailwind class 後重新編譯 public/styles.css
-npm run build:icons # 重新產生 PWA 圖示
+npm test             # 自動測試（不會呼叫真正的 Claude API）
+npm run build:css    # 修改 Tailwind class 後重新編譯 public/styles.css
+npm run build:icons  # 重新產生 PWA 圖示
 npm run build:sprite # 重新產生 public/icons.svg（只含用到的圖示）
 ```
+
+新增 `public/js/` 底下的檔案時，記得加進 `sw.js` 的離線清單（測試會檢查）。
 
 ### 真 Key 冒煙測試
 
@@ -55,6 +79,6 @@ npm run build:sprite # 重新產生 public/icons.svg（只含用到的圖示）
 $env:ANTHROPIC_API_KEY="sk-ant-..."; npm run smoke
 ```
 
-可加 `$env:SMOKE_IMAGE="C:照片.jpg"` 用自己的照片。
+可加 `$env:SMOKE_IMAGE="C:\照片.jpg"` 用自己的照片。
 
 `public/styles.css`、`public/icons.svg` 是編譯後的檔案，已一併提交，GitHub Pages 不需要額外建置。
