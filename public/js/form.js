@@ -319,6 +319,25 @@ export function displayPlaceInfo(info) {
     $('place-info-container').classList.remove('hidden');
 }
 
+// ===== 清除點單：照片、備註、店家、評分；平台、品項、Hashtag、外語等設定保留 =====
+actions.clearOrderForm = () => {
+    const hasContent = state.files.length || $("user-desc").value.trim() || state.placeInfo || $("place-name").value.trim() || state.rating;
+    if (!hasContent) return toast("點單已經是空的", "info");
+    if (!confirm("要清掉照片、備註、店家和評分嗎？（平台、品項等設定會保留）")) return;
+    state.files.forEach(f => URL.revokeObjectURL(f.url));
+    state.files = [];
+    renderPhotos();
+    saveDraftPhotos();
+    $("user-desc").value = "";
+    updateDescCount();
+    state.rating = 0;
+    renderStars();
+    actions.clearPlaceInfo();
+    checkBtnState();
+    toast("已清除點單", "success");
+    $("order-form").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 actions.clearPlaceInfo = () => {
     state.placeInfo = null;
     $('place-info-container').classList.add('hidden');

@@ -195,6 +195,20 @@ export function updateTicketBody(i) {
 }
 
 // ===== 出餐區 =====
+actions.clearResult = () => {
+    const o = state.order;
+    if (!o) return;
+    if (o.streaming || state.generating) return toast("出單中，等印完再清除", "info");
+    releaseOrder(o);
+    forgetOrder(o);
+    state.order = null;
+    $("result-area").classList.add("hidden");
+    $("captions-container").innerHTML = "";
+    $("analysis-container").classList.add("hidden");
+    toast("已清除出餐區，這張單還在訂單紀錄裡", "success");
+    $("order-form").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 export function renderOrder(animate = false, scroll = true) {
     const o = state.order;
     if (!o) return;
@@ -210,6 +224,7 @@ export function renderOrder(animate = false, scroll = true) {
         renderTicket(i);
     });
     $('copyall-btn').disabled = !!o.streaming;
+    $('clear-result-btn').disabled = !!o.streaming;
     $('result-area').classList.remove('hidden');
     if (scroll) setTimeout(() => $('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }

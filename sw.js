@@ -4,7 +4,7 @@
 // - Claude API 一律不經過快取
 // - 分享目標：接住從相簿「分享」過來的照片，暫存後導回首頁
 // - 新版本：安裝好後先等待，使用者按「重新整理」才切換（避免出單到一半被換掉）
-const VERSION = 'v10';
+const VERSION = 'v11';
 const SHELL_CACHE = `shell-${VERSION}`;
 const CDN_CACHE = 'cdn-v1';
 const SHARE_CACHE = 'share-inbox';

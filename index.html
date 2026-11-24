@@ -181,7 +181,7 @@
             <hr class="rule-double">
 
             <div class="flex items-center justify-between mono text-sm mb-3">
-                <span>小計</span><span id="order-summary">3 道貼文</span>
+                <span>小計 <button type="button" id="clear-form-btn" data-action="clearOrderForm" class="ml-2 text-xs underline text-[color:var(--ink-3)] hover:text-[color:var(--stamp)] font-sans" title="清掉照片、備註、店家和評分（平台、品項等設定會保留）"><svg class="ic mr-0.5"><use href="public/icons.svg#trash"/></svg>清除點單</button></span><span id="order-summary">3 道貼文</span>
             </div>
             <button id="generate-btn" data-action="generateCaption" class="btn-ink w-full py-4 text-lg flex items-center justify-center gap-3" disabled>
                 <span id="generate-label">送出點單</span><svg class="ic"><use href="public/icons.svg#arrow-right"/></svg>
@@ -216,6 +216,7 @@
             <div class="flex gap-2">
                 <button id="copyall-btn" data-action="copyAll" class="pill"><svg class="ic"><use href="public/icons.svg#copy"/></svg>全部複製</button>
                 <button id="regen-btn" data-action="generateCaption" class="pill"><svg class="ic"><use href="public/icons.svg#rotate"/></svg>整單重做</button>
+                <button id="clear-result-btn" data-action="clearResult" class="pill" title="收起這張單（訂單紀錄裡還找得到）"><svg class="ic"><use href="public/icons.svg#x"/></svg>清除出餐區</button>
             </div>
         </div>
         <div id="analysis-container" class="hidden mb-8 max-w-2xl"></div>
